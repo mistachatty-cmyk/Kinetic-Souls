@@ -48,6 +48,17 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
+## Artifacts
+
+### `artifacts/kinetic-souls` (`@workspace/kinetic-souls`)
+
+A self-contained 2D 1v1 retro battle game built with React + HTML5 Canvas.
+
+- Single page app — all game logic lives in `src/pages/KineticSouls.tsx`
+- No backend required — purely frontend
+- Game features: multi-part physics characters, HP bars, damage zones (head/arm/leg), ghost/explosion death animations, bot auto-spawn, PvP/PvB modes, timer and score-limit game modes
+- Controls: P1 presses `A` to spawn fighters, P2 presses `L` (PvP), bot auto-spawns (PvB)
+
 ## Packages
 
 ### `artifacts/api-server` (`@workspace/api-server`)
