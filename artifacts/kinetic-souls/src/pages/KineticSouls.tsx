@@ -10,7 +10,8 @@ const BOT_MIN_INTERVAL = 2000;
 const BOT_MAX_INTERVAL = 4000;
 const SCOREBOARD_H = 60;
 
-type GameMode = "timer" | "score";
+// ADDED NEW GAME MODES HERE
+type GameMode = "timer" | "score" | "horde" | "sudden_death";
 type OpponentMode = "pvp" | "bot";
 
 interface GameState {
@@ -86,7 +87,8 @@ function getPartDamage(type: "head" | "body" | "arm" | "leg"): number {
 
 let charIdCounter = 0;
 
-function spawnCharacter(team: 1 | 2): Character {
+// MODIFIED TO ACCEPT GAME MODE FOR SUDDEN DEATH
+function spawnCharacter(team: 1 | 2, mode: GameMode = "timer"): Character {
   const x = team === 1 ? 40 : ARENA_W - 40;
   const y = SCOREBOARD_H + 40 + Math.random() * (ARENA_H - 80);
   const angle = Math.random() * Math.PI * 2;
@@ -94,6 +96,10 @@ function spawnCharacter(team: 1 | 2): Character {
   const dirX = team === 1 ? 1 : -1;
   const vx = dirX * speed * (0.6 + Math.random() * 0.4);
   const vy = (Math.random() - 0.5) * speed;
+
+  // Set HP based on mode
+  const startingHp = mode === "sudden_death" ? 1 : MAX_HP;
+
   return {
     id: charIdCounter++,
     team,
@@ -103,7 +109,7 @@ function spawnCharacter(team: 1 | 2): Character {
     vy,
     angle,
     angularV: (Math.random() - 0.5) * 0.12,
-    hp: MAX_HP,
+    hp: startingHp,
     flashFrames: 0,
     dead: false,
     parts: PARTS,
@@ -145,6 +151,97 @@ function spawnExplosion(x: number, y: number, team: 1 | 2): Particle[] {
     });
   }
   return particles;
+}
+
+function drawButton(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  label: string,
+  active: boolean,
+  highlight = false
+) {
+  ctx.fillStyle = highlight ? "#996622" : active ? "#443388" : "#222244";
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = highlight ? "#ffbb44" : active ? "#9966ff" : "#445566";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = highlight ? "#ffdd88" : active ? "#ccaaff" : "#8899aa";
+  ctx.font = highlight ? "bold 15px monospace" : "13px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(label, x + w / 2, y + h / 2 + 5);
+}
+
+function drawMenu(ctx: CanvasRenderingContext2D, mode: GameMode, opp: OpponentMode) {
+  ctx.fillStyle = "#080814";
+  ctx.fillRect(0, 0, ARENA_W, ARENA_H + SCOREBOARD_H);
+
+  for (let i = 0; i < 40; i++) {
+    const x = (i * 67 + 13) % ARENA_W;
+    const y = (i * 83 + 7) % (ARENA_H + SCOREBOARD_H);
+    ctx.fillStyle = `rgba(80,60,150,${0.1 + (i % 5) * 0.04})`;
+    ctx.fillRect(x, y, 6, 6);
+  }
+
+  ctx.fillStyle = "#ccaaff";
+  ctx.font = "bold 52px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("KINETIC", ARENA_W / 2, 110);
+  ctx.fillStyle = "#ff9944";
+  ctx.fillText("SOULS", ARENA_W / 2, 165);
+
+  ctx.fillStyle = "#888";
+  ctx.font = "14px monospace";
+  ctx.fillText("1v1 AUTO BATTLE ARENA", ARENA_W / 2, 196);
+
+  ctx.fillStyle = "#aaa";
+  ctx.font = "bold 16px monospace";
+  ctx.fillText("GAME MODE", ARENA_W / 2, 255);
+
+  drawButton(ctx, ARENA_W / 2 - 130, 275, 115, 36, "Timer: 2 Mins", mode === "timer");
+  drawButton(ctx, ARENA_W / 2 + 15, 275, 115, 36, "Score: 10 Pts", mode === "score");
+  drawButton(ctx, ARENA_W / 2 - 130, 320, 115, 36, "Horde (PvE)", mode === "horde");
+  drawButton(ctx, ARENA_W / 2 + 15, 320, 115, 36, "Sudden Death", mode === "sudden_death");
+
+  ctx.fillStyle = "#aaa";
+  ctx.font = "bold 16px monospace";
+  ctx.fillText("OPPONENT", ARENA_W / 2, 390);
+
+  drawButton(ctx, ARENA_W / 2 - 130, 405, 115, 36, "Player vs Player", opp === "pvp" && mode !== "horde");
+  drawButton(ctx, ARENA_W / 2 + 15, 405, 115, 36, "Player vs Bot", opp === "bot" || mode === "horde");
+
+  drawButton(ctx, ARENA_W / 2 - 75, 465, 150, 44, "START GAME", false, true);
+
+  ctx.fillStyle = "#666";
+  ctx.font = "12px monospace";
+  ctx.fillText("P1: Press [A] to spawn  |  P2: Press [L] to spawn", ARENA_W / 2, 530);
+
+  ctx.fillStyle = "#555";
+  ctx.fillText("Characters bounce around and fight automatically!", ARENA_W / 2, 550);
+}
+
+function drawGameOver(ctx: CanvasRenderingContext2D, state: GameState) {
+  ctx.fillStyle = "#080814";
+  ctx.fillRect(0, 0, ARENA_W, ARENA_H + SCOREBOARD_H);
+
+  ctx.fillStyle = "#ccaaff";
+  ctx.font = "bold 48px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("GAME OVER", ARENA_W / 2, 180);
+
+  ctx.fillStyle = "#ffee88";
+  ctx.font = "bold 32px monospace";
+  ctx.fillText(state.winner, ARENA_W / 2, 260);
+
+  ctx.fillStyle = "#ff6655";
+  ctx.font = "24px monospace";
+  ctx.fillText(`P1 Score: ${state.p1Score}`, ARENA_W / 2 - 100, 330);
+  ctx.fillStyle = "#5599ff";
+  ctx.fillText(`P2 Score: ${state.p2Score}`, ARENA_W / 2 + 100, 330);
+
+  drawButton(ctx, ARENA_W / 2 - 90, 390, 180, 48, "MAIN MENU", false, true);
 }
 
 export default function KineticSouls() {
@@ -220,7 +317,10 @@ export default function KineticSouls() {
     []
   );
 
-  const drawHpBar = useCallback((ctx: CanvasRenderingContext2D, c: Character) => {
+  const drawHpBar = useCallback((ctx: CanvasRenderingContext2D, c: Character, mode: GameMode) => {
+    // Hide HP bar in Sudden Death (since it's 1-hit kill anyway)
+    if (mode === "sudden_death") return;
+
     const barW = 28;
     const barH = 4;
     const bx = c.x - barW / 2;
@@ -316,6 +416,10 @@ export default function KineticSouls() {
         const mins = Math.floor(state.timeLeft / 60);
         const secs = Math.floor(state.timeLeft % 60);
         ctx.fillText(`${mins}:${secs.toString().padStart(2, "0")}`, ARENA_W / 2, 44);
+      } else if (state.mode === "horde") {
+        ctx.fillText(`SURVIVE THE HORDE: ${state.scoreLimit} KILLS`, ARENA_W / 2, 44);
+      } else if (state.mode === "sudden_death") {
+        ctx.fillText(`SUDDEN DEATH: FIRST TO ${state.scoreLimit}`, ARENA_W / 2, 44);
       } else {
         ctx.fillText(`FIRST TO ${state.scoreLimit}`, ARENA_W / 2, 44);
       }
@@ -344,6 +448,15 @@ export default function KineticSouls() {
     ghostsRef.current = [];
     timerAccRef.current = 0;
     botTimerRef.current = 0;
+
+    // Setup Limits Based on Mode
+    let limit = 10;
+    if (modeRef.current === "horde") {
+      limit = 50; 
+      opponentRef.current = "bot"; // Force Bot in Horde mode
+    }
+    if (modeRef.current === "sudden_death") limit = 5;
+
     botNextSpawnRef.current = BOT_MIN_INTERVAL + Math.random() * (BOT_MAX_INTERVAL - BOT_MIN_INTERVAL);
 
     stateRef.current = {
@@ -352,7 +465,7 @@ export default function KineticSouls() {
       p1Score: 0,
       p2Score: 0,
       timeLeft: 120,
-      scoreLimit: 10,
+      scoreLimit: limit,
       running: true,
       over: false,
       winner: "",
@@ -394,10 +507,19 @@ export default function KineticSouls() {
 
           if (state.opponent === "bot") {
             botTimerRef.current += dt;
+
+            // Adjust spawn rate for Horde Mode
+            let minSpawn = BOT_MIN_INTERVAL;
+            let maxSpawn = BOT_MAX_INTERVAL;
+            if (state.mode === "horde") {
+                minSpawn = 400; // Super fast spawning!
+                maxSpawn = 1000;
+            }
+
             if (botTimerRef.current >= botNextSpawnRef.current) {
               botTimerRef.current = 0;
-              botNextSpawnRef.current = BOT_MIN_INTERVAL + Math.random() * (BOT_MAX_INTERVAL - BOT_MIN_INTERVAL);
-              charactersRef.current.push(spawnCharacter(2));
+              botNextSpawnRef.current = minSpawn + Math.random() * (maxSpawn - minSpawn);
+              charactersRef.current.push(spawnCharacter(2, state.mode));
             }
           }
 
@@ -519,7 +641,7 @@ export default function KineticSouls() {
                 if (scoringTeam === 1) state.p1Score++;
                 else state.p2Score++;
 
-                if (state.mode === "score" && (state.p1Score >= state.scoreLimit || state.p2Score >= state.scoreLimit)) {
+                if (state.mode !== "timer" && (state.p1Score >= state.scoreLimit || state.p2Score >= state.scoreLimit)) {
                   endGame();
                 }
               } else {
@@ -548,7 +670,7 @@ export default function KineticSouls() {
               if (scoringTeam === 1) state.p1Score++;
               else state.p2Score++;
 
-              if (state.mode === "score" && (state.p1Score >= state.scoreLimit || state.p2Score >= state.scoreLimit)) {
+              if (state.mode !== "timer" && (state.p1Score >= state.scoreLimit || state.p2Score >= state.scoreLimit)) {
                 endGame();
               }
             }
@@ -577,7 +699,7 @@ export default function KineticSouls() {
 
         for (const c of charactersRef.current) {
           drawPixelChar(ctx, c, c.flashFrames > 0);
-          drawHpBar(ctx, c);
+          drawHpBar(ctx, c, state.mode);
         }
 
         for (const g of ghostsRef.current) {
@@ -601,100 +723,6 @@ export default function KineticSouls() {
     [drawArena, drawPixelChar, drawHpBar, drawGhost, drawScoreboard, endGame]
   );
 
-  function drawMenu(ctx: CanvasRenderingContext2D, mode: GameMode, opp: OpponentMode) {
-    ctx.fillStyle = "#080814";
-    ctx.fillRect(0, 0, ARENA_W, ARENA_W + SCOREBOARD_H);
-
-    for (let i = 0; i < 40; i++) {
-      const x = (i * 67 + 13) % ARENA_W;
-      const y = (i * 83 + 7) % (ARENA_H + SCOREBOARD_H);
-      ctx.fillStyle = `rgba(80,60,150,${0.1 + (i % 5) * 0.04})`;
-      ctx.fillRect(x, y, 6, 6);
-    }
-
-    ctx.fillStyle = "#ccaaff";
-    ctx.font = "bold 52px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("KINETIC", ARENA_W / 2, 120);
-    ctx.fillStyle = "#ff9944";
-    ctx.fillText("SOULS", ARENA_W / 2, 178);
-
-    ctx.fillStyle = "#888";
-    ctx.font = "14px monospace";
-    ctx.fillText("1v1 AUTO BATTLE ARENA", ARENA_W / 2, 210);
-
-    ctx.fillStyle = "#aaa";
-    ctx.font = "bold 16px monospace";
-    ctx.fillText("GAME MODE", ARENA_W / 2, 270);
-
-    const btn1Active = mode === "timer";
-    const btn2Active = mode === "score";
-
-    drawButton(ctx, ARENA_W / 2 - 130, 285, 115, 36, "Timer: 2 Mins", btn1Active);
-    drawButton(ctx, ARENA_W / 2 + 15, 285, 115, 36, "Score: 10 Pts", btn2Active);
-
-    ctx.fillStyle = "#aaa";
-    ctx.font = "bold 16px monospace";
-    ctx.fillText("OPPONENT", ARENA_W / 2, 358);
-
-    const pvpActive = opp === "pvp";
-    const botActive = opp === "bot";
-    drawButton(ctx, ARENA_W / 2 - 130, 373, 115, 36, "Player vs Player", pvpActive);
-    drawButton(ctx, ARENA_W / 2 + 15, 373, 115, 36, "Player vs Bot", botActive);
-
-    drawButton(ctx, ARENA_W / 2 - 75, 440, 150, 44, "START GAME", false, true);
-
-    ctx.fillStyle = "#666";
-    ctx.font = "12px monospace";
-    ctx.fillText("P1: Press [A] to spawn  |  P2: Press [L] to spawn", ARENA_W / 2, 530);
-
-    ctx.fillStyle = "#555";
-    ctx.fillText("Characters bounce around and fight automatically!", ARENA_W / 2, 550);
-  }
-
-  function drawButton(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    label: string,
-    active: boolean,
-    highlight = false
-  ) {
-    ctx.fillStyle = highlight ? "#996622" : active ? "#443388" : "#222244";
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = highlight ? "#ffbb44" : active ? "#9966ff" : "#445566";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = highlight ? "#ffdd88" : active ? "#ccaaff" : "#8899aa";
-    ctx.font = highlight ? "bold 15px monospace" : "13px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText(label, x + w / 2, y + h / 2 + 5);
-  }
-
-  function drawGameOver(ctx: CanvasRenderingContext2D, state: GameState) {
-    ctx.fillStyle = "#080814";
-    ctx.fillRect(0, 0, ARENA_W, ARENA_H + SCOREBOARD_H);
-
-    ctx.fillStyle = "#ccaaff";
-    ctx.font = "bold 48px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("GAME OVER", ARENA_W / 2, 180);
-
-    ctx.fillStyle = "#ffee88";
-    ctx.font = "bold 32px monospace";
-    ctx.fillText(state.winner, ARENA_W / 2, 260);
-
-    ctx.fillStyle = "#ff6655";
-    ctx.font = "24px monospace";
-    ctx.fillText(`P1 Score: ${state.p1Score}`, ARENA_W / 2 - 100, 330);
-    ctx.fillStyle = "#5599ff";
-    ctx.fillText(`P2 Score: ${state.p2Score}`, ARENA_W / 2 + 100, 330);
-
-    drawButton(ctx, ARENA_W / 2 - 90, 390, 180, 48, "MAIN MENU", false, true);
-  }
-
   const handleClick = useCallback(
     (e: MouseEvent) => {
       const canvas = canvasRef.current;
@@ -708,19 +736,22 @@ export default function KineticSouls() {
       const screen = screenRef.current;
 
       if (screen === "menu") {
-        if (mx >= ARENA_W / 2 - 130 && mx <= ARENA_W / 2 - 15 && my >= 285 && my <= 321) {
-          modeRef.current = "timer";
+        // Mode Buttons (Top Row)
+        if (mx >= ARENA_W / 2 - 130 && mx <= ARENA_W / 2 - 15 && my >= 275 && my <= 311) modeRef.current = "timer";
+        if (mx >= ARENA_W / 2 + 15 && mx <= ARENA_W / 2 + 130 && my >= 275 && my <= 311) modeRef.current = "score";
+
+        // Mode Buttons (Bottom Row)
+        if (mx >= ARENA_W / 2 - 130 && mx <= ARENA_W / 2 - 15 && my >= 320 && my <= 356) modeRef.current = "horde";
+        if (mx >= ARENA_W / 2 + 15 && mx <= ARENA_W / 2 + 130 && my >= 320 && my <= 356) modeRef.current = "sudden_death";
+
+        // Opponent Buttons
+        if (mx >= ARENA_W / 2 - 130 && mx <= ARENA_W / 2 - 15 && my >= 405 && my <= 441) {
+            if (modeRef.current !== "horde") opponentRef.current = "pvp"; // Prevent PvP in Horde
         }
-        if (mx >= ARENA_W / 2 + 15 && mx <= ARENA_W / 2 + 130 && my >= 285 && my <= 321) {
-          modeRef.current = "score";
-        }
-        if (mx >= ARENA_W / 2 - 130 && mx <= ARENA_W / 2 - 15 && my >= 373 && my <= 409) {
-          opponentRef.current = "pvp";
-        }
-        if (mx >= ARENA_W / 2 + 15 && mx <= ARENA_W / 2 + 130 && my >= 373 && my <= 409) {
-          opponentRef.current = "bot";
-        }
-        if (mx >= ARENA_W / 2 - 75 && mx <= ARENA_W / 2 + 75 && my >= 440 && my <= 484) {
+        if (mx >= ARENA_W / 2 + 15 && mx <= ARENA_W / 2 + 130 && my >= 405 && my <= 441) opponentRef.current = "bot";
+
+        // Start Button
+        if (mx >= ARENA_W / 2 - 75 && mx <= ARENA_W / 2 + 75 && my >= 465 && my <= 509) {
           startGame();
         }
       } else if (screen === "over") {
@@ -741,11 +772,11 @@ export default function KineticSouls() {
     keysRef.current.add(e.key.toLowerCase());
     if (screenRef.current === "game" && stateRef.current.running) {
       if (e.key.toLowerCase() === "a") {
-        charactersRef.current.push(spawnCharacter(1));
+        charactersRef.current.push(spawnCharacter(1, stateRef.current.mode));
       }
       if (e.key.toLowerCase() === "l") {
         if (stateRef.current.opponent === "pvp") {
-          charactersRef.current.push(spawnCharacter(2));
+          charactersRef.current.push(spawnCharacter(2, stateRef.current.mode));
         }
       }
     }
