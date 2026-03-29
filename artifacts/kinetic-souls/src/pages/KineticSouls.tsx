@@ -217,7 +217,9 @@ export default function KineticSouls() {
   const keysRef = useRef<Set<string>>(new Set());
 
   const [showLiveMenu, setShowLiveMenu] = useState(false);
+  const [showMobileUI, setShowMobileUI] = useState(false);
   const [, setTick] = useState(0);
+  const joyRef = useRef({ active: false, startX: 0, startY: 0, dx: 0, dy: 0 });
 
   const stateRef = useRef<GameState>({
     mode: "timer", opponent: "pvp", theme: "classic", modifier: "none", camera: "static", weaponStyle: "standard", environment: "none",
@@ -790,12 +792,54 @@ export default function KineticSouls() {
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => { keysRef.current.delete(e.code); }, []);
 
+  const spawnP1 = useCallback(() => {
+    if (screenRef.current !== "game" || !stateRef.current.running || stateRef.current.paused) return;
+    const c = spawnCharacter(1, stateRef.current.modifier, dataRef.chars.current, stateRef.current.optSmartSpawn, stateRef.current.optPool, stateRef.current.weaponStyle);
+    if (!stateRef.current.optPool || c.id >= charIdCounter - 1) dataRef.chars.current.push(c);
+  }, [dataRef]);
+
+  const spawnP2 = useCallback(() => {
+    if (screenRef.current !== "game" || !stateRef.current.running || stateRef.current.paused) return;
+    if (stateRef.current.opponent !== "pvp") return;
+    const c = spawnCharacter(2, stateRef.current.modifier, dataRef.chars.current, stateRef.current.optSmartSpawn, stateRef.current.optPool, stateRef.current.weaponStyle);
+    if (!stateRef.current.optPool || c.id >= charIdCounter - 1) dataRef.chars.current.push(c);
+  }, [dataRef]);
+
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    e.preventDefault();
+    const canvas = canvasRef.current; if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.changedTouches[0];
+    const tx = (touch.clientX - rect.left) * (canvas.width / rect.width);
+    joyRef.current = { active: true, startX: touch.clientX, startY: touch.clientY, dx: 0, dy: 0 };
+    if (tx < ARENA_W / 2) spawnP1(); else spawnP2();
+  }, [spawnP1, spawnP2]);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    e.preventDefault();
+    const touch = e.changedTouches[0];
+    joyRef.current.dx = touch.clientX - joyRef.current.startX;
+    joyRef.current.dy = touch.clientY - joyRef.current.startY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    e.preventDefault();
+    joyRef.current = { active: false, startX: 0, startY: 0, dx: 0, dy: 0 };
+  }, []);
+
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
-    canvas.addEventListener("mousemove", handleMouseMove); window.addEventListener("mousedown", handleMouseDown); window.addEventListener("mouseup", handleMouseUp); canvas.addEventListener("click", handleClick); window.addEventListener("keydown", handleKeyDown); 
+    canvas.addEventListener("mousemove", handleMouseMove); window.addEventListener("mousedown", handleMouseDown); window.addEventListener("mouseup", handleMouseUp); canvas.addEventListener("click", handleClick); window.addEventListener("keydown", handleKeyDown);
+    canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
+    canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
+    canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
     timeRef.last.current = performance.now(); timeRef.raf.current = requestAnimationFrame(gameLoop);
-    return () => { canvas.removeEventListener("mousemove", handleMouseMove); window.removeEventListener("mousedown", handleMouseDown); window.removeEventListener("mouseup", handleMouseUp); canvas.removeEventListener("click", handleClick); window.removeEventListener("keydown", handleKeyDown); cancelAnimationFrame(timeRef.raf.current); };
-  }, [gameLoop, handleClick, handleKeyDown, handleKeyUp, handleMouseMove, handleMouseDown, handleMouseUp, timeRef]);
+    return () => {
+      canvas.removeEventListener("mousemove", handleMouseMove); window.removeEventListener("mousedown", handleMouseDown); window.removeEventListener("mouseup", handleMouseUp); canvas.removeEventListener("click", handleClick); window.removeEventListener("keydown", handleKeyDown);
+      canvas.removeEventListener("touchstart", handleTouchStart); canvas.removeEventListener("touchmove", handleTouchMove); canvas.removeEventListener("touchend", handleTouchEnd);
+      cancelAnimationFrame(timeRef.raf.current);
+    };
+  }, [gameLoop, handleClick, handleKeyDown, handleKeyUp, handleMouseMove, handleMouseDown, handleMouseUp, handleTouchStart, handleTouchMove, handleTouchEnd, timeRef]);
 
   return (
     <div style={{ background: "#000", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "8px", position: "relative" }}>
@@ -839,10 +883,43 @@ export default function KineticSouls() {
         </div>
       )}
 
-      <canvas ref={canvasRef} width={ARENA_W} height={ARENA_H + SCOREBOARD_H} style={{ maxWidth: "100vw", maxHeight: "100vh", objectFit: "contain", imageRendering: "pixelated", border: "3px solid #6644aa", cursor: "crosshair" }} />
-      <div style={{ color: "#666", fontFamily: "monospace", fontSize: "12px", marginTop: "8px", textAlign: "center", paddingBottom: "10px" }}>
+      <canvas ref={canvasRef} width={ARENA_W} height={ARENA_H + SCOREBOARD_H} style={{ maxWidth: "100vw", maxHeight: "100vh", objectFit: "contain", imageRendering: "pixelated", border: "3px solid #6644aa", cursor: "crosshair", touchAction: "none" }} />
+
+      <div style={{ color: "#666", fontFamily: "monospace", fontSize: "12px", marginTop: "6px", textAlign: "center" }}>
         P1: [A] Spawn | P2: [L] Spawn | [Q] Auto-Spawn | [P] Pause | [M] Live Modifiers Menu
       </div>
+
+      <div style={{ marginTop: "6px", textAlign: "center" }}>
+        <label style={{ color: "#888", fontFamily: "monospace", fontSize: "11px", cursor: "pointer", userSelect: "none" }}>
+          <input type="checkbox" checked={showMobileUI} onChange={e => setShowMobileUI(e.target.checked)} style={{ marginRight: "6px", accentColor: "#ccaaff" }} />
+          Enable Mobile Controls
+        </label>
+      </div>
+
+      {showMobileUI && (
+        <div style={{ display: "flex", gap: "16px", marginTop: "10px", paddingBottom: "14px", width: "100%", maxWidth: "500px", justifyContent: "center" }}>
+          <button
+            onPointerDown={e => { e.preventDefault(); spawnP1(); }}
+            style={{
+              flex: 1, height: "70px", background: "rgba(170, 34, 17, 0.85)", border: "2px solid #ff5533",
+              borderRadius: "12px", color: "#fff", fontFamily: "monospace", fontSize: "15px", fontWeight: "bold",
+              cursor: "pointer", touchAction: "manipulation", userSelect: "none",
+              boxShadow: "0 0 12px rgba(255,85,51,0.4)"
+            }}>
+            ⚔ SPAWN P1
+          </button>
+          <button
+            onPointerDown={e => { e.preventDefault(); spawnP2(); }}
+            style={{
+              flex: 1, height: "70px", background: "rgba(34, 68, 170, 0.85)", border: "2px solid #3366ff",
+              borderRadius: "12px", color: "#fff", fontFamily: "monospace", fontSize: "15px", fontWeight: "bold",
+              cursor: "pointer", touchAction: "manipulation", userSelect: "none",
+              boxShadow: "0 0 12px rgba(51,102,255,0.4)"
+            }}>
+            ⚔ SPAWN P2
+          </button>
+        </div>
+      )}
     </div>
   );
 }
