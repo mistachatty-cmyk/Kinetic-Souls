@@ -883,43 +883,10 @@ export default function KineticSouls() {
         </div>
       )}
 
-      <canvas ref={canvasRef} width={ARENA_W} height={ARENA_H + SCOREBOARD_H} style={{ maxWidth: "100vw", maxHeight: "100vh", objectFit: "contain", imageRendering: "pixelated", border: "3px solid #6644aa", cursor: "crosshair", touchAction: "none" }} />
-
-      <div style={{ color: "#666", fontFamily: "monospace", fontSize: "12px", marginTop: "6px", textAlign: "center" }}>
+      <canvas ref={canvasRef} width={ARENA_W} height={ARENA_H + SCOREBOARD_H} style={{ maxWidth: "100vw", maxHeight: "100vh", objectFit: "contain", imageRendering: "pixelated", border: "3px solid #6644aa", cursor: "crosshair" }} />
+      <div style={{ color: "#666", fontFamily: "monospace", fontSize: "12px", marginTop: "8px", textAlign: "center", paddingBottom: "10px" }}>
         P1: [A] Spawn | P2: [L] Spawn | [Q] Auto-Spawn | [P] Pause | [M] Live Modifiers Menu
       </div>
-
-      <div style={{ marginTop: "6px", textAlign: "center" }}>
-        <label style={{ color: "#888", fontFamily: "monospace", fontSize: "11px", cursor: "pointer", userSelect: "none" }}>
-          <input type="checkbox" checked={showMobileUI} onChange={e => setShowMobileUI(e.target.checked)} style={{ marginRight: "6px", accentColor: "#ccaaff" }} />
-          Enable Mobile Controls
-        </label>
-      </div>
-
-      {showMobileUI && (
-        <div style={{ display: "flex", gap: "16px", marginTop: "10px", paddingBottom: "14px", width: "100%", maxWidth: "500px", justifyContent: "center" }}>
-          <button
-            onPointerDown={e => { e.preventDefault(); spawnP1(); }}
-            style={{
-              flex: 1, height: "70px", background: "rgba(170, 34, 17, 0.85)", border: "2px solid #ff5533",
-              borderRadius: "12px", color: "#fff", fontFamily: "monospace", fontSize: "15px", fontWeight: "bold",
-              cursor: "pointer", touchAction: "manipulation", userSelect: "none",
-              boxShadow: "0 0 12px rgba(255,85,51,0.4)"
-            }}>
-            ⚔ SPAWN P1
-          </button>
-          <button
-            onPointerDown={e => { e.preventDefault(); spawnP2(); }}
-            style={{
-              flex: 1, height: "70px", background: "rgba(34, 68, 170, 0.85)", border: "2px solid #3366ff",
-              borderRadius: "12px", color: "#fff", fontFamily: "monospace", fontSize: "15px", fontWeight: "bold",
-              cursor: "pointer", touchAction: "manipulation", userSelect: "none",
-              boxShadow: "0 0 12px rgba(51,102,255,0.4)"
-            }}>
-            ⚔ SPAWN P2
-          </button>
-        </div>
-      )}
     </div>
   );
 }
