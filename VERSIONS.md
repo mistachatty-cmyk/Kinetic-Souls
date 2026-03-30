@@ -4,7 +4,21 @@ Use the commit IDs below to roll back to any version via Replit's checkpoint sys
 
 ---
 
-## v0.5 — Passport, Story Mode & Shatter Effects
+## ✅ STABLE V0.3.0 — Full Feature Build (Syntax Fixed)
+**Commit:** `bdbc039`  
+**Date:** 2026-03-30  
+**Status: STABLE — use this as your safe restore point**  
+- All features from passport, story mode, shatter effects, mobile controls, themes, environments, and LoK modifiers working together
+- Game loop syntax error fixed (stray brace removed)
+- "Welcome back, Sire." menu greeting
+- Menu Settings button
+- Grid background on menu
+- Mobile Controls opt-in toggle
+- Version snapshot log (this file)
+
+---
+
+## v0.2.5 — Passport, Story Mode & Shatter Effects
 **Commit:** `985697a`  
 **Date:** 2026-03-29  
 - Reflection Passport screen with badge/achievement system (v0.1.0, v0.2.6, v0.3.5)
