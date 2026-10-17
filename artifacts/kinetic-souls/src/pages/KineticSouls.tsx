@@ -97,7 +97,7 @@ type MinimapPosition =
   | "bottom-center"
   | "top-center"
   | "center";
-type WeaponStyle = "standard" | "roulette" | "melee_mash" | "ranged_test";
+type WeaponStyle = "standard" | "roulette" | "melee_mash" | "ranged_test" | "none";
 type Environment =
   | "none"
   | "ice"
@@ -394,7 +394,7 @@ function spawnCharacter(
   let speed = (SPAWN_SPEED + Math.random() * 1.5) * speedMult;
   let weapon: WeaponType = "standard";
   let shieldHp = 0;
-  let mass = modifier === "heavy" ? 3 : 1;
+  let mass = 1;
   let isBoss = forceBoss;
 
   if (wStyle === "roulette" || wStyle === "melee_mash")
@@ -1321,16 +1321,10 @@ function drawRawChar(
       }
       if (
         theme === "neon" ||
-        theme === "synthwave" ||
-        theme === "glitch" ||
-        theme === "neon_overdrive"
+        theme === "synthwave"
       ) {
         wCol1 = flash ? "white" : "#ffff00";
         wCol2 = "transparent";
-      }
-      if (theme === "rgb_cycle") {
-        wCol1 = color;
-        wCol2 = "#fff";
       }
       drawWeapon(ctx, c.weapon, scale, wCol1, wCol2, theme, timestamp);
     }
@@ -3795,7 +3789,7 @@ export default function KineticSouls() {
           const bx = startX2 + col * (tw + gap3);
           const by = startY2 + row * (th + gap3);
           if (mx >= bx && mx <= bx + tw && my >= by && my <= by + th) {
-            (stateRef.current as Record<string, unknown>)[key] = !(stateRef.current[key] as boolean);
+            (stateRef.current as unknown as Record<string, unknown>)[key] = !(stateRef.current[key] as boolean);
             setTick((t) => t + 1);
           }
         });
