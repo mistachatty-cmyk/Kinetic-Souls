@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
+import { completeDemoDayRun, onDemoDayInventory, pickUpDemoDayFragment, startDemoDayRun } from "@/lib/demoDayBridge";
 
 const ARENA_W = 900;
 const ARENA_H = 560;
@@ -96,7 +97,7 @@ type MinimapPosition =
   | "bottom-center"
   | "top-center"
   | "center";
-type WeaponStyle = "standard" | "roulette" | "melee_mash" | "ranged_test";
+type WeaponStyle = "standard" | "roulette" | "melee_mash" | "ranged_test" | "none";
 type Environment =
   | "none"
   | "ice"
@@ -393,7 +394,7 @@ function spawnCharacter(
   let speed = (SPAWN_SPEED + Math.random() * 1.5) * speedMult;
   let weapon: WeaponType = "standard";
   let shieldHp = 0;
-  let mass = modifier === "heavy" ? 3 : 1;
+  let mass = 1;
   let isBoss = forceBoss;
 
   if (wStyle === "roulette" || wStyle === "melee_mash")
@@ -1320,16 +1321,10 @@ function drawRawChar(
       }
       if (
         theme === "neon" ||
-        theme === "synthwave" ||
-        theme === "glitch" ||
-        theme === "neon_overdrive"
+        theme === "synthwave"
       ) {
         wCol1 = flash ? "white" : "#ffff00";
         wCol2 = "transparent";
-      }
-      if (theme === "rgb_cycle") {
-        wCol1 = color;
-        wCol2 = "#fff";
       }
       drawWeapon(ctx, c.weapon, scale, wCol1, wCol2, theme, timestamp);
     }
@@ -2561,6 +2556,8 @@ export default function KineticSouls() {
     equippedBackground: null,
     inventory: [],
   });
+  const [demoDayFragment, setDemoDayFragment] = useState(false);
+  useEffect(() => onDemoDayInventory(setDemoDayFragment), []);
   const lokCoinsRef = useRef<number>(0);
 
   void currentSplash;
@@ -2770,6 +2767,7 @@ export default function KineticSouls() {
 
   const endGame = useCallback(() => {
     const st = stateRef.current;
+    if (st.over) return;
     let winner = "";
     if (st.mode === "horde" || st.mode === "infection")
       winner = st.p1Score >= 50 ? "You Survived!" : "The Horde Consumed You";
@@ -2783,6 +2781,7 @@ export default function KineticSouls() {
       ...st, running: false, over: true, paused: false, winner, draggingId: null,
     };
     screenRef.current = "over";
+    completeDemoDayRun(st.p1Score);
     setPassport((p) => ({ ...p, lokCoins: lokCoinsRef.current }));
   }, []);
 
@@ -2859,6 +2858,7 @@ export default function KineticSouls() {
         );
     }
     screenRef.current = "game";
+    startDemoDayRun();
   }, [refs, dataRef, timeRef]);
 
   const spawnP1 = useCallback(() => {
@@ -3327,6 +3327,9 @@ export default function KineticSouls() {
                 if (killer) {
                   if (killer.team === 1) {
                     state.p1Score++;
+                    if (c.isBoss && pickUpDemoDayFragment()) {
+                      spawnText(killer.x, killer.y - 52, "RIFT FRAGMENT", "#d8c9ff");
+                    }
                     state.directorScore += c.isBoss ? 50 : 10;
                     lokCoinsRef.current += c.isBoss ? 25 : 10;
                     spawnText(killer.x, killer.y - 30, c.isBoss ? "+BOSS +50 LoK" : "+1", c.isBoss ? "#ffd700" : "#00ff88");
@@ -3786,7 +3789,7 @@ export default function KineticSouls() {
           const bx = startX2 + col * (tw + gap3);
           const by = startY2 + row * (th + gap3);
           if (mx >= bx && mx <= bx + tw && my >= by && my <= by + th) {
-            (stateRef.current as Record<string, unknown>)[key] = !(stateRef.current[key] as boolean);
+            (stateRef.current as unknown as Record<string, unknown>)[key] = !(stateRef.current[key] as boolean);
             setTick((t) => t + 1);
           }
         });
@@ -4197,6 +4200,7 @@ export default function KineticSouls() {
               🏅 {passport.username} · {lokCoinsRef.current} LoK Coins
             </div>
           )}
+          {demoDayFragment && <div style={{ marginTop: 8, color: "#d8c9ff", fontSize: 10 }}>✦ Demo Day inventory: Rift Fragment</div>}
           {!passport.connected && (
             <button
               onClick={connectLokPassport}
