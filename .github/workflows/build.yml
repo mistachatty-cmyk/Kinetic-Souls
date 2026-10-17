@@ -21,4 +21,6 @@ jobs:
       - name: Typecheck game
         run: pnpm --filter @workspace/kinetic-souls typecheck
       - name: Build game
+        env:
+          PORT: '3000'
         run: pnpm --filter @workspace/kinetic-souls build
