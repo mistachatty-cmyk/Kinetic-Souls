@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
+import { completeDemoDayRun, startDemoDayRun } from "@/lib/demoDayBridge";
 
 const ARENA_W = 900;
 const ARENA_H = 560;
@@ -2770,6 +2771,7 @@ export default function KineticSouls() {
 
   const endGame = useCallback(() => {
     const st = stateRef.current;
+    if (st.over) return;
     let winner = "";
     if (st.mode === "horde" || st.mode === "infection")
       winner = st.p1Score >= 50 ? "You Survived!" : "The Horde Consumed You";
@@ -2783,6 +2785,7 @@ export default function KineticSouls() {
       ...st, running: false, over: true, paused: false, winner, draggingId: null,
     };
     screenRef.current = "over";
+    completeDemoDayRun(st.p1Score);
     setPassport((p) => ({ ...p, lokCoins: lokCoinsRef.current }));
   }, []);
 
@@ -2859,6 +2862,7 @@ export default function KineticSouls() {
         );
     }
     screenRef.current = "game";
+    startDemoDayRun();
   }, [refs, dataRef, timeRef]);
 
   const spawnP1 = useCallback(() => {
