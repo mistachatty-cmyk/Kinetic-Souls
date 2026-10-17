@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react";
-import { completeDemoDayRun, startDemoDayRun } from "@/lib/demoDayBridge";
+import { completeDemoDayRun, onDemoDayInventory, pickUpDemoDayFragment, startDemoDayRun } from "@/lib/demoDayBridge";
 
 const ARENA_W = 900;
 const ARENA_H = 560;
@@ -2562,6 +2562,8 @@ export default function KineticSouls() {
     equippedBackground: null,
     inventory: [],
   });
+  const [demoDayFragment, setDemoDayFragment] = useState(false);
+  useEffect(() => onDemoDayInventory(setDemoDayFragment), []);
   const lokCoinsRef = useRef<number>(0);
 
   void currentSplash;
@@ -3331,6 +3333,9 @@ export default function KineticSouls() {
                 if (killer) {
                   if (killer.team === 1) {
                     state.p1Score++;
+                    if (c.isBoss && pickUpDemoDayFragment()) {
+                      spawnText(killer.x, killer.y - 52, "RIFT FRAGMENT", "#d8c9ff");
+                    }
                     state.directorScore += c.isBoss ? 50 : 10;
                     lokCoinsRef.current += c.isBoss ? 25 : 10;
                     spawnText(killer.x, killer.y - 30, c.isBoss ? "+BOSS +50 LoK" : "+1", c.isBoss ? "#ffd700" : "#00ff88");
@@ -4201,6 +4206,7 @@ export default function KineticSouls() {
               🏅 {passport.username} · {lokCoinsRef.current} LoK Coins
             </div>
           )}
+          {demoDayFragment && <div style={{ marginTop: 8, color: "#d8c9ff", fontSize: 10 }}>✦ Demo Day inventory: Rift Fragment</div>}
           {!passport.connected && (
             <button
               onClick={connectLokPassport}
