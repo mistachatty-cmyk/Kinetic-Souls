@@ -25,3 +25,5 @@ jobs:
           PORT: '3000'
           BASE_PATH: '/'
         run: pnpm --filter @workspace/kinetic-souls build
+      - name: Build page arena
+        run: pnpm --filter @workspace/kinetic-souls build:page-overlay
