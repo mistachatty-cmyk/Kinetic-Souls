@@ -1,4 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from "react";
+import { Button } from "@ui-sdk/react/button";
+import { Switch, SwitchThumb } from "@ui-sdk/react/switch";
+import { drawGlyph } from "@/ui/lok-facet/lokGlyphCanvas";
+import type { LokGlyphKey } from "@/ui/lok-facet/lokGlyphs.generated";
 import { completeDemoDayRun, onDemoDayInventory, pickUpDemoDayFragment, startDemoDayRun } from "@/lib/demoDayBridge";
 
 const ARENA_W = 900;
@@ -1875,11 +1879,19 @@ function drawThemeBackground(
 }
 
 // ─── DRAW BUTTON ─────────────────────────────────────────────────────────────
-// ─── ORIGINAL VECTOR ICONS (no emoji, no stock glyphs) ──────────────────────
+// ─── LOK FACET ICONS (shared Lok art, see src/ui/lok-facet) ─────────────────
 type IconName =
   | "timer" | "score" | "infinity" | "horde" | "infection" | "pvp" | "bot" | "ffa"
   | "play" | "lok" | "settings" | "book" | "back" | "crown" | "bolt" | "pause"
   | "check" | "ring";
+
+// Data and call sites use these names; the glyph keys come from the Lok Facet set.
+const ICON_GLYPH: Record<IconName, LokGlyphKey> = {
+  timer: "timer", score: "trophy", infinity: "infinity", horde: "horde", infection: "infection",
+  pvp: "pvp", bot: "bot", ffa: "ffa", play: "play", lok: "gear", settings: "settings",
+  book: "book", back: "arrowL", crown: "crown", bolt: "shock", pause: "pause",
+  check: "check", ring: "ring",
+};
 
 function drawIcon(
   ctx: CanvasRenderingContext2D,
@@ -1889,111 +1901,10 @@ function drawIcon(
   size: number,
   color: string,
 ) {
-  const r = size / 2;
   ctx.save();
-  ctx.translate(cx, cy);
-  ctx.strokeStyle = color;
   ctx.fillStyle = color;
-  ctx.lineWidth = Math.max(1.5, size / 9);
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
   ctx.shadowBlur = 0;
-  const poly = (pts: number[][], fill = true) => {
-    ctx.beginPath();
-    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * r, y * r) : ctx.moveTo(x * r, y * r)));
-    ctx.closePath();
-    if (fill) ctx.fill(); else ctx.stroke();
-  };
-  const circ = (x: number, y: number, rad: number, fill = false) => {
-    ctx.beginPath();
-    ctx.arc(x * r, y * r, rad * r, 0, Math.PI * 2);
-    if (fill) ctx.fill(); else ctx.stroke();
-  };
-  const line = (x1: number, y1: number, x2: number, y2: number) => {
-    ctx.beginPath();
-    ctx.moveTo(x1 * r, y1 * r);
-    ctx.lineTo(x2 * r, y2 * r);
-    ctx.stroke();
-  };
-  const spokes = (from: number, to: number) => {
-    for (let i = 0; i < 8; i++) {
-      const a = (i * Math.PI) / 4;
-      line(Math.cos(a) * from, Math.sin(a) * from, Math.cos(a) * to, Math.sin(a) * to);
-    }
-  };
-  switch (name) {
-    case "timer":
-      circ(0, 0.1, 0.8); line(0, 0.1, 0, -0.4); line(0, 0.1, 0.35, 0.3); line(-0.2, -0.95, 0.2, -0.95);
-      break;
-    case "score":
-      poly([[-0.6, -0.8], [0.6, -0.8], [0.45, 0.1], [0.1, 0.35], [-0.1, 0.35], [-0.45, 0.1]]);
-      line(0, 0.35, 0, 0.7); line(-0.5, 0.85, 0.5, 0.85);
-      break;
-    case "infinity":
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.bezierCurveTo(0.3 * r, -0.7 * r, r, -0.7 * r, r, 0);
-      ctx.bezierCurveTo(r, 0.7 * r, 0.3 * r, 0.7 * r, 0, 0);
-      ctx.bezierCurveTo(-0.3 * r, -0.7 * r, -r, -0.7 * r, -r, 0);
-      ctx.bezierCurveTo(-r, 0.7 * r, -0.3 * r, 0.7 * r, 0, 0);
-      ctx.stroke();
-      break;
-    case "horde":
-      circ(-0.55, 0.15, 0.28, true); circ(0.55, 0.15, 0.28, true); circ(0, -0.25, 0.32, true);
-      poly([[-0.9, 0.9], [-0.2, 0.9], [-0.2, 0.5], [-0.9, 0.5]]);
-      poly([[0.2, 0.9], [0.9, 0.9], [0.9, 0.5], [0.2, 0.5]]);
-      break;
-    case "infection":
-      circ(0, 0, 0.45, true); spokes(0.6, 0.95);
-      break;
-    case "pvp":
-      circ(-0.5, -0.35, 0.28, true); circ(0.5, -0.35, 0.28, true);
-      poly([[-0.95, 0.8], [-0.05, 0.8], [-0.1, 0.05], [-0.9, 0.05]]);
-      poly([[0.05, 0.8], [0.95, 0.8], [0.9, 0.05], [0.1, 0.05]]);
-      break;
-    case "bot":
-      poly([[-0.8, -0.45], [0.8, -0.45], [0.8, 0.8], [-0.8, 0.8]], false);
-      line(0, -0.45, 0, -0.85); circ(0, -0.9, 0.1, true);
-      ctx.fillRect(-0.5 * r, -0.05 * r, 0.3 * r, 0.3 * r); ctx.fillRect(0.2 * r, -0.05 * r, 0.3 * r, 0.3 * r);
-      break;
-    case "ffa":
-      line(-0.8, -0.8, 0.8, 0.8); line(0.8, -0.8, -0.8, 0.8);
-      line(-0.8, -0.3, -0.3, -0.8); line(0.8, -0.3, 0.3, -0.8);
-      break;
-    case "play":
-      poly([[-0.55, -0.8], [0.8, 0], [-0.55, 0.8]]);
-      break;
-    case "back":
-      poly([[0.55, -0.8], [-0.8, 0], [0.55, 0.8]]);
-      break;
-    case "lok":
-      circ(0, 0, 0.5); spokes(0.65, 0.95); circ(0, 0, 0.15, true);
-      break;
-    case "settings":
-      line(-0.9, -0.55, 0.9, -0.55); line(-0.9, 0, 0.9, 0); line(-0.9, 0.55, 0.9, 0.55);
-      circ(-0.35, -0.55, 0.2, true); circ(0.4, 0, 0.2, true); circ(-0.1, 0.55, 0.2, true);
-      break;
-    case "book":
-      poly([[-0.95, -0.7], [-0.05, -0.55], [-0.05, 0.8], [-0.95, 0.65]], false);
-      poly([[0.95, -0.7], [0.05, -0.55], [0.05, 0.8], [0.95, 0.65]], false);
-      break;
-    case "crown":
-      poly([[-0.9, 0.6], [-0.9, -0.5], [-0.4, 0], [0, -0.7], [0.4, 0], [0.9, -0.5], [0.9, 0.6]]);
-      break;
-    case "bolt":
-      poly([[0.2, -0.95], [-0.6, 0.15], [-0.05, 0.15], [-0.2, 0.95], [0.6, -0.2], [0.05, -0.2]]);
-      break;
-    case "pause":
-      ctx.fillRect(-0.55 * r, -0.7 * r, 0.4 * r, 1.4 * r);
-      ctx.fillRect(0.15 * r, -0.7 * r, 0.4 * r, 1.4 * r);
-      break;
-    case "check":
-      ctx.beginPath(); ctx.moveTo(-0.7 * r, 0); ctx.lineTo(-0.2 * r, 0.55 * r); ctx.lineTo(0.75 * r, -0.6 * r); ctx.stroke();
-      break;
-    case "ring":
-      circ(0, 0, 0.55);
-      break;
-  }
+  drawGlyph(ctx, ICON_GLYPH[name], cx, cy, size);
   ctx.restore();
 }
 
@@ -2009,7 +1920,7 @@ function iconText(
   const color = ctx.fillStyle as string;
   const base = ctx.textBaseline;
   const m = /(\d+(?:\.\d+)?)px/.exec(ctx.font);
-  const size = Math.round((m ? parseFloat(m[1]) : 12) * 1.05);
+  const size = Math.round((m ? parseFloat(m[1]) : 12) * 1.45);
   const tw = ctx.measureText(text).width;
   const total = size + 6 + tw;
   const start = align === "center" ? x - total / 2 : align === "right" ? x - total : x;
@@ -4191,7 +4102,7 @@ export default function KineticSouls() {
       >
         <span style={{ color: "#ff6655", fontSize: 10, fontFamily: "monospace", marginRight: 4 }}>P1 SKIN:</span>
         {allSkins.map((s) => (
-          <button
+          <Button
             key={`p1-${s}`}
             onClick={() => setP1Skin(s)}
             style={{
@@ -4206,11 +4117,11 @@ export default function KineticSouls() {
             }}
           >
             {s}
-          </button>
+          </Button>
         ))}
         <span style={{ color: "#5599ff", fontSize: 10, fontFamily: "monospace", margin: "0 4px" }}>P2 SKIN:</span>
         {allSkins.map((s) => (
-          <button
+          <Button
             key={`p2-${s}`}
             onClick={() => setP2Skin(s)}
             style={{
@@ -4225,7 +4136,7 @@ export default function KineticSouls() {
             }}
           >
             {s}
-          </button>
+          </Button>
         ))}
       </div>
       )}
@@ -4238,13 +4149,14 @@ export default function KineticSouls() {
             { t: "MODS", f: () => setShowLiveMenu((v) => !v) },
             ...(typeof document !== "undefined" && document.fullscreenEnabled ? [{ t: isFull ? "EXIT FULL" : "FULLSCREEN", f: toggleFullscreen }] : []),
           ].map((b) => (
-            <button
+            <Button
               key={b.t}
+              className="ks-btn"
               onClick={b.f}
               style={appBtn}
             >
               {b.t}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -4253,22 +4165,25 @@ export default function KineticSouls() {
       {screenRef.current !== "game" && (
       <div style={{ position: "absolute", top: "calc(4px + env(safe-area-inset-top))", right: "calc(4px + env(safe-area-inset-right))", display: "flex", gap: 4, alignItems: "center", zIndex: 11 }}>
         {screenRef.current === "menu" && (
-          <button onClick={() => setShowSkins((v) => !v)} style={appBtn}>SKINS</button>
+          <Button className="ks-btn" onClick={() => setShowSkins((v) => !v)} style={appBtn}>SKINS</Button>
         )}
         {typeof document !== "undefined" && document.fullscreenEnabled && (
-          <button onClick={toggleFullscreen} style={appBtn}>{isFull ? "EXIT FULL" : "FULLSCREEN"}</button>
+          <Button className="ks-btn" onClick={toggleFullscreen} style={appBtn}>{isFull ? "EXIT FULL" : "FULLSCREEN"}</Button>
         )}
         {!isStandalone && (installEvt || isIOS) && (
-          <button
+          <Button
+            className="ks-btn"
             onClick={() => (installEvt ? installEvt.prompt() : setShowInstallHelp((v) => !v))}
             style={{ ...appBtn, borderColor: "#2DD4BF", color: "#2DD4BF" }}
           >
             INSTALL APP
-          </button>
+          </Button>
         )}
-        <label style={{ ...appBtn, display: "flex", alignItems: "center", gap: 4 }}>
-          <input type="checkbox" checked={showMobileUI} onChange={(e) => setShowMobileUI(e.target.checked)} />
+        <label className="ks-btn" style={{ ...appBtn, display: "flex", alignItems: "center", gap: 8 }}>
           Touch controls
+          <Switch checked={showMobileUI} onCheckedChange={(next) => setShowMobileUI(next)} className="ks-switch">
+            <SwitchThumb className="ks-switch-thumb" />
+          </Switch>
         </label>
       </div>
       )}
@@ -4287,7 +4202,7 @@ export default function KineticSouls() {
 
       {showMobileUI && screenRef.current === "game" && (
         <div style={{ position: "absolute", bottom: "calc(12px + env(safe-area-inset-bottom))", display: "flex", gap: 12, zIndex: 11 }}>
-          <button
+          <Button
             onPointerDown={(e) => { e.preventDefault(); spawnP1(); }}
             style={{
               background: "rgba(255,80,80,0.7)",
@@ -4302,8 +4217,8 @@ export default function KineticSouls() {
             }}
           >
             P1 SPAWN
-          </button>
-          <button
+          </Button>
+          <Button
             onPointerDown={(e) => { e.preventDefault(); spawnP2(); }}
             style={{
               background: "rgba(80,100,255,0.7)",
@@ -4318,7 +4233,7 @@ export default function KineticSouls() {
             }}
           >
             P2 SPAWN
-          </button>
+          </Button>
         </div>
       )}
 
@@ -4347,7 +4262,7 @@ export default function KineticSouls() {
           <div style={{ marginBottom: 6 }}>
             <span style={{ color: "#aaa" }}>God Action: </span>
             {(["smite", "heal", "revive", "freeze", "enrage", "mutate", "infect", "ascend"] as const).map((a) => (
-              <button
+              <Button
                 key={a}
                 onClick={() => setGodAction(a)}
                 style={{
@@ -4363,14 +4278,14 @@ export default function KineticSouls() {
                 }}
               >
                 {a}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div style={{ marginBottom: 6 }}>
             <span style={{ color: "#aaa" }}>Target Team: </span>
             {[1, 2, 3].map((t) => (
-              <button
+              <Button
                 key={t}
                 onClick={() => setGodTarget(t)}
                 style={{
@@ -4385,14 +4300,14 @@ export default function KineticSouls() {
                 }}
               >
                 T{t}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div style={{ marginBottom: 6 }}>
             <span style={{ color: "#aaa" }}>Spawn Type: </span>
             {(["standard", "tank", "assassin", "giant", "mage", "necromancer"] as KineticType[]).map((kt) => (
-              <button
+              <Button
                 key={kt}
                 onClick={() => setBirthType(kt)}
                 style={{
@@ -4408,12 +4323,12 @@ export default function KineticSouls() {
                 }}
               >
                 {kt}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            <button
+            <Button
               onClick={() => {
                 const state = stateRef.current;
                 dataRef.chars.current.forEach((c) => {
@@ -4439,8 +4354,8 @@ export default function KineticSouls() {
               }}
             >
               EXECUTE
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 const st = stateRef.current;
                 st.paused = !st.paused;
@@ -4449,19 +4364,19 @@ export default function KineticSouls() {
               style={{ background: "#224488", color: "#fff", border: "none", padding: "4px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3 }}
             >
               PAUSE
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={spawnP1}
               style={{ background: "#883300", color: "#fff", border: "none", padding: "4px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3 }}
             >
               +P1
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={spawnP2}
               style={{ background: "#003388", color: "#fff", border: "none", padding: "4px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3 }}
             >
               +P2
-            </button>
+            </Button>
           </div>
 
           {passport.connected && (
@@ -4471,12 +4386,12 @@ export default function KineticSouls() {
           )}
           {demoDayFragment && <div style={{ marginTop: 8, color: "#d8c9ff", fontSize: 10 }}>Demo Day inventory: Rift Fragment</div>}
           {!passport.connected && (
-            <button
+            <Button
               onClick={connectLokPassport}
               style={{ marginTop: 8, background: "#442200", color: "#ffd700", border: "1px solid #ffd700", padding: "3px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3, width: "100%" }}
             >
               Connect LoK Passport (demo)
-            </button>
+            </Button>
           )}
         </div>
       )}
