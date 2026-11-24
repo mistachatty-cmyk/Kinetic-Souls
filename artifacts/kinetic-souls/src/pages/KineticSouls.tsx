@@ -2067,6 +2067,25 @@ function drawMainMenu(
   );
 }
 
+// Shared layout so drawing and hit-testing can never drift apart.
+// Order: theme, modifier, camera, weapons, environment, view.
+const LOK_MENU_SECTIONS = [
+  { x: 30, y: 58, cols: 6 },
+  { x: 30, y: 218, cols: 3 },
+  { x: 30, y: 338, cols: 2 },
+  { x: 320, y: 338, cols: 2 },
+  { x: 465, y: 218, cols: 3 },
+  { x: 610, y: 338, cols: 2 },
+];
+const LOK_BTN_W = 130, LOK_BTN_H = 24, LOK_BTN_GAP = 5;
+function lokItemRect(sec: number, i: number) {
+  const s = LOK_MENU_SECTIONS[sec];
+  return {
+    x: s.x + (i % s.cols) * (LOK_BTN_W + LOK_BTN_GAP),
+    y: s.y + 12 + Math.floor(i / s.cols) * (LOK_BTN_H + 3),
+  };
+}
+
 // ─── LOK MENU ────────────────────────────────────────────────────────────────
 function drawLokMenu(
   ctx: CanvasRenderingContext2D,
@@ -2200,43 +2219,20 @@ function drawLokMenu(
     },
   ];
 
-  const colW = 290, colGap = 10;
-  const startX = (W - (colW * 3 + colGap * 2)) / 2;
-  const startY = 58;
-  const bh = 24, bw = 130, gap = 5;
-
-  for (const sec of sections) {
-    const baseX = startX + sec.col * (colW + colGap);
-    const baseY = startY + sec.row * 170;
-
+  sections.forEach((sec, si) => {
+    const pos = LOK_MENU_SECTIONS[si];
     ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.font = "bold 11px monospace";
     ctx.textAlign = "left";
-    ctx.fillText(sec.label, baseX, baseY);
-
+    ctx.fillText(sec.label, pos.x, pos.y);
     sec.items.forEach((item, i) => {
-      const col2 = Math.floor(i / 7);
-      const row2 = i % 7;
-      const bx = baseX + col2 * (bw + gap);
-      const by = baseY + 12 + row2 * (bh + 3);
+      const { x: bx, y: by } = lokItemRect(si, i);
       const hover =
-        mouse.x >= bx &&
-        mouse.x <= bx + bw &&
-        mouse.y >= by &&
-        mouse.y <= by + bh;
-      drawBtn(
-        ctx,
-        item.label,
-        bx,
-        by,
-        bw,
-        bh,
-        hover,
-        theme,
-        sec.current === item.value,
-      );
+        mouse.x >= bx && mouse.x <= bx + LOK_BTN_W &&
+        mouse.y >= by && mouse.y <= by + LOK_BTN_H;
+      drawBtn(ctx, item.label, bx, by, LOK_BTN_W, LOK_BTN_H, hover, theme, sec.current === item.value);
     });
-  }
+  });
 
   const backW = 120, backH = 30;
   const backX = W / 2 - backW / 2, backY = H - 44;
@@ -3678,10 +3674,12 @@ export default function KineticSouls() {
       mouseRef.current.y = (e.clientY - rect.top) * (canvas.height / rect.height);
     };
 
-    const handleClick = (e: MouseEvent) => {
+    const handleClick = (e: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect();
       const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
       const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+      mouseRef.current.x = mx;
+      mouseRef.current.y = my;
       const screen = screenRef.current;
       const state = stateRef.current;
       const W = ARENA_W, H = ARENA_H + SCOREBOARD_H;
@@ -3738,34 +3736,24 @@ export default function KineticSouls() {
         const allEnvs: Environment[] = ["none","ice","blackhole","lava","storm","bouncy","wrap","blackout"];
         const allViews: ViewMode[] = ["standard","theater","cinematic"];
 
-        const colW = 290, colGap = 10;
-        const startX = (W - (colW * 3 + colGap * 2)) / 2;
-        const startY = 70;
-        const bh2 = 24, bw2 = 130, gap2 = 5;
-
         const sections = [
-          { items: allThemes, col: 0, row: 0, setter: (v: string) => { refs.theme.current = v as ThemeMode; stateRef.current.theme = v as ThemeMode; Object.keys(spriteCache).forEach(k => delete spriteCache[k]); } },
-          { items: allMods, col: 1, row: 0, setter: (v: string) => { refs.mod.current = v as LokModifier; } },
-          { items: allCams, col: 2, row: 0, setter: (v: string) => { refs.cam.current = v as CameraMode; } },
-          { items: allWeps, col: 2, row: 1, setter: (v: string) => { refs.wep.current = v as WeaponStyle; } },
-          { items: allEnvs, col: 1, row: 1, setter: (v: string) => { refs.env.current = v as Environment; } },
-          { items: allViews, col: 2, row: 2, setter: (v: string) => { refs.view.current = v as ViewMode; } },
+          { items: allThemes, setter: (v: string) => { refs.theme.current = v as ThemeMode; stateRef.current.theme = v as ThemeMode; Object.keys(spriteCache).forEach(k => delete spriteCache[k]); } },
+          { items: allMods, setter: (v: string) => { refs.mod.current = v as LokModifier; } },
+          { items: allCams, setter: (v: string) => { refs.cam.current = v as CameraMode; } },
+          { items: allWeps, setter: (v: string) => { refs.wep.current = v as WeaponStyle; } },
+          { items: allEnvs, setter: (v: string) => { refs.env.current = v as Environment; } },
+          { items: allViews, setter: (v: string) => { refs.view.current = v as ViewMode; } },
         ];
 
-        for (const sec of sections) {
-          const baseX = startX + sec.col * (colW + colGap);
-          const baseY = startY + sec.row * 170;
+        sections.forEach((sec, si) => {
           sec.items.forEach((item, i) => {
-            const col2 = Math.floor(i / 7);
-            const row2 = i % 7;
-            const bx = baseX + col2 * (bw2 + gap2);
-            const by = baseY + 12 + row2 * (bh2 + 3);
-            if (mx >= bx && mx <= bx + bw2 && my >= by && my <= by + bh2) {
+            const { x: bx, y: by } = lokItemRect(si, i);
+            if (mx >= bx && mx <= bx + LOK_BTN_W && my >= by && my <= by + LOK_BTN_H) {
               sec.setter(item);
               setTick((t) => t + 1);
             }
           });
-        }
+        });
 
         const backW = 120, backH = 30;
         const backX = W / 2 - backW / 2, backY = H - 44;
@@ -3894,7 +3882,12 @@ export default function KineticSouls() {
       if (screenRef.current === "game") {
         if (tx < ARENA_W / 2) spawnP1();
         else spawnP2();
+      } else {
+        // preventDefault above suppresses the synthetic click, so menus
+        // must be driven from touch directly (iPhone had no working menus).
+        handleClick(touch);
       }
+      void ty;
     };
 
     canvas.addEventListener("mousemove", handleMouseMove);
@@ -3939,7 +3932,7 @@ export default function KineticSouls() {
         style={{
           display: "block",
           maxWidth: "100%",
-          maxHeight: "100%",
+          maxHeight: "calc(100vh - 56px)",
           imageRendering: "pixelated",
           cursor: stateRef.current.handOfGod ? "crosshair" : "default",
           touchAction: "none",
@@ -3949,18 +3942,16 @@ export default function KineticSouls() {
       {/* Skin Picker Row */}
       <div
         style={{
-          position: "absolute",
-          bottom: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
           display: "flex",
           gap: 4,
           background: "rgba(0,0,0,0.8)",
           padding: "4px 8px",
           borderRadius: 4,
           alignItems: "center",
-          flexWrap: "wrap",
-          maxWidth: ARENA_W,
+          flexWrap: "nowrap",
+          overflowX: "auto",
+          maxWidth: "100%",
+          flexShrink: 0,
         }}
       >
         <span style={{ color: "#ff6655", fontSize: 10, fontFamily: "monospace", marginRight: 4 }}>P1 SKIN:</span>
