@@ -1,4 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from "react";
+import { Button } from "@ui-sdk/react/button";
+import { Switch, SwitchThumb } from "@ui-sdk/react/switch";
+import { drawGlyph } from "@/ui/lok-facet/lokGlyphCanvas";
+import type { LokGlyphKey } from "@/ui/lok-facet/lokGlyphs.generated";
 import { completeDemoDayRun, onDemoDayInventory, pickUpDemoDayFragment, startDemoDayRun } from "@/lib/demoDayBridge";
 
 const ARENA_W = 900;
@@ -16,8 +20,8 @@ const SPLASH_ARCHIVE = [
   "LOK HORIZON: Connecting...",
   "THEEEee ULtimatee everything-everywhere-all-at-once auto-battler?",
   "Why choose a variant when you can build the ULTIMATE?",
-  "🦉 Lok: Focus on what matters.",
-  "💰 COIN MODE: Greed is a weapon.",
+  "Lok: Focus on what matters.",
+  "COIN MODE: Greed is a weapon.",
   "GSix: Gilded Protocol - Authorized.",
   "Br/kn State: THE SOUL OF THE MACHINE.",
   "4-Tone Puke: Pure Retro DMG.",
@@ -1875,6 +1879,70 @@ function drawThemeBackground(
 }
 
 // ─── DRAW BUTTON ─────────────────────────────────────────────────────────────
+// ─── LOK FACET ICONS (shared Lok art, see src/ui/lok-facet) ─────────────────
+type IconName =
+  | "timer" | "score" | "infinity" | "horde" | "infection" | "pvp" | "bot" | "ffa"
+  | "play" | "lok" | "settings" | "book" | "back" | "crown" | "bolt" | "pause"
+  | "check" | "ring";
+
+// Data and call sites use these names; the glyph keys come from the Lok Facet set.
+const ICON_GLYPH: Record<IconName, LokGlyphKey> = {
+  timer: "timer", score: "trophy", infinity: "infinity", horde: "horde", infection: "infection",
+  pvp: "pvp", bot: "bot", ffa: "ffa", play: "play", lok: "gear", settings: "settings",
+  book: "book", back: "arrowL", crown: "crown", bolt: "shock", pause: "pause",
+  check: "check", ring: "ring",
+};
+
+function drawIcon(
+  ctx: CanvasRenderingContext2D,
+  name: IconName,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+) {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.shadowBlur = 0;
+  drawGlyph(ctx, ICON_GLYPH[name], cx, cy, size);
+  ctx.restore();
+}
+
+// Draws an icon plus text honoring the current textAlign (left/center/right).
+function iconText(
+  ctx: CanvasRenderingContext2D,
+  icon: IconName,
+  text: string,
+  x: number,
+  y: number,
+) {
+  const align = ctx.textAlign;
+  const color = ctx.fillStyle as string;
+  const base = ctx.textBaseline;
+  const m = /(\d+(?:\.\d+)?)px/.exec(ctx.font);
+  const size = Math.round((m ? parseFloat(m[1]) : 12) * 1.45);
+  const tw = ctx.measureText(text).width;
+  const total = size + 6 + tw;
+  const start = align === "center" ? x - total / 2 : align === "right" ? x - total : x;
+  ctx.textAlign = "left";
+  const iy = base === "middle" ? y : base === "top" ? y + size / 2 : y - size * 0.35;
+  drawIcon(ctx, icon, start + size / 2, iy, size, color);
+  ctx.fillText(text, start + size + 6, y);
+  ctx.textAlign = align;
+}
+
+const appBtn: React.CSSProperties = {
+  background: "rgba(10,10,12,0.85)",
+  color: "#F4F3EF",
+  border: "1px solid rgba(244,243,239,0.35)",
+  padding: "6px 10px",
+  fontSize: 11,
+  fontFamily: "'JetBrains Mono', monospace",
+  borderRadius: 0,
+  cursor: "pointer",
+  userSelect: "none",
+};
+
 function drawBtn(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -1917,7 +1985,9 @@ function drawBtn(
   ctx.font = `bold ${Math.min(13, h * 0.5)}px monospace`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, x + w / 2, y + h / 2);
+  const tagged = /^@(\w+)\|(.*)$/.exec(text);
+  if (tagged) iconText(ctx, tagged[1] as IconName, tagged[2], x + w / 2, y + h / 2);
+  else ctx.fillText(text, x + w / 2, y + h / 2);
 }
 
 // ─── MAIN MENU ───────────────────────────────────────────────────────────────
@@ -1995,16 +2065,16 @@ function drawMainMenu(
   const col2X = W / 2 + 10;
 
   const modeButtons: { label: string; value: GameMode }[] = [
-    { label: "⏱ Timer", value: "timer" },
-    { label: "🏆 Score", value: "score" },
-    { label: "♾ Unlimited", value: "unlimited" },
-    { label: "🧟 Horde", value: "horde" },
-    { label: "🦠 Infection", value: "infection" },
+    { label: "@timer|Timer", value: "timer" },
+    { label: "@score|Score", value: "score" },
+    { label: "@infinity|Unlimited", value: "unlimited" },
+    { label: "@horde|Horde", value: "horde" },
+    { label: "@infection|Infection", value: "infection" },
   ];
   const oppButtons: { label: string; value: OpponentMode }[] = [
-    { label: "👥 PvP", value: "pvp" },
-    { label: "🤖 vs Bot", value: "bot" },
-    { label: "⚔ FFA", value: "ffa" },
+    { label: "@pvp|PvP", value: "pvp" },
+    { label: "@bot|vs Bot", value: "bot" },
+    { label: "@ffa|FFA", value: "ffa" },
   ];
 
   let sY = 130;
@@ -2041,10 +2111,10 @@ function drawMainMenu(
   sY += maxRows * (bh + gapY) + 16;
 
   const bigBtns: { label: string; y: number }[] = [
-    { label: "▶  START GAME", y: sY },
-    { label: "⚙  LOK MENU", y: sY + bh + gapY },
-    { label: "🎨 SETTINGS", y: sY + (bh + gapY) * 2 },
-    { label: "📖 BESTIARY", y: sY + (bh + gapY) * 3 },
+    { label: "@play|START GAME", y: sY },
+    { label: "@lok|LOK MENU", y: sY + bh + gapY },
+    { label: "@settings|SETTINGS", y: sY + (bh + gapY) * 2 },
+    { label: "@book|BESTIARY", y: sY + (bh + gapY) * 3 },
   ];
   const bbW = 340, bbH = 36;
   const bbX = W / 2 - bbW / 2;
@@ -2061,10 +2131,29 @@ function drawMainMenu(
   ctx.font = "10px monospace";
   ctx.textAlign = "center";
   ctx.fillText(
-    "A = Spawn P1 · L = Spawn P2 · Q = Auto · P = Pause · M = Live Mods",
+    "A = Spawn P1 · L = Spawn P2 · Q = Auto · P = Pause · M = Live Mods · Esc = Pause / Menu",
     W / 2,
     H - 14,
   );
+}
+
+// Shared layout so drawing and hit-testing can never drift apart.
+// Order: theme, modifier, camera, weapons, environment, view.
+const LOK_MENU_SECTIONS = [
+  { x: 30, y: 58, cols: 6 },
+  { x: 30, y: 218, cols: 3 },
+  { x: 30, y: 338, cols: 2 },
+  { x: 320, y: 338, cols: 2 },
+  { x: 465, y: 218, cols: 3 },
+  { x: 610, y: 338, cols: 2 },
+];
+const LOK_BTN_W = 130, LOK_BTN_H = 24, LOK_BTN_GAP = 5;
+function lokItemRect(sec: number, i: number) {
+  const s = LOK_MENU_SECTIONS[sec];
+  return {
+    x: s.x + (i % s.cols) * (LOK_BTN_W + LOK_BTN_GAP),
+    y: s.y + 12 + Math.floor(i / s.cols) * (LOK_BTN_H + 3),
+  };
 }
 
 // ─── LOK MENU ────────────────────────────────────────────────────────────────
@@ -2088,7 +2177,7 @@ function drawLokMenu(
   ctx.fillStyle = "#fff";
   ctx.font = "bold 28px monospace";
   ctx.textAlign = "center";
-  ctx.fillText("⚙ LOK GAME MODIFIERS", W / 2, 22);
+  iconText(ctx, "lok", "LOK GAME MODIFIERS", W / 2, 22);
 
   const sections: {
     label: string;
@@ -2200,43 +2289,20 @@ function drawLokMenu(
     },
   ];
 
-  const colW = 290, colGap = 10;
-  const startX = (W - (colW * 3 + colGap * 2)) / 2;
-  const startY = 58;
-  const bh = 24, bw = 130, gap = 5;
-
-  for (const sec of sections) {
-    const baseX = startX + sec.col * (colW + colGap);
-    const baseY = startY + sec.row * 170;
-
+  sections.forEach((sec, si) => {
+    const pos = LOK_MENU_SECTIONS[si];
     ctx.fillStyle = "rgba(255,255,255,0.6)";
     ctx.font = "bold 11px monospace";
     ctx.textAlign = "left";
-    ctx.fillText(sec.label, baseX, baseY);
-
+    ctx.fillText(sec.label, pos.x, pos.y);
     sec.items.forEach((item, i) => {
-      const col2 = Math.floor(i / 7);
-      const row2 = i % 7;
-      const bx = baseX + col2 * (bw + gap);
-      const by = baseY + 12 + row2 * (bh + 3);
+      const { x: bx, y: by } = lokItemRect(si, i);
       const hover =
-        mouse.x >= bx &&
-        mouse.x <= bx + bw &&
-        mouse.y >= by &&
-        mouse.y <= by + bh;
-      drawBtn(
-        ctx,
-        item.label,
-        bx,
-        by,
-        bw,
-        bh,
-        hover,
-        theme,
-        sec.current === item.value,
-      );
+        mouse.x >= bx && mouse.x <= bx + LOK_BTN_W &&
+        mouse.y >= by && mouse.y <= by + LOK_BTN_H;
+      drawBtn(ctx, item.label, bx, by, LOK_BTN_W, LOK_BTN_H, hover, theme, sec.current === item.value);
     });
-  }
+  });
 
   const backW = 120, backH = 30;
   const backX = W / 2 - backW / 2, backY = H - 44;
@@ -2245,7 +2311,7 @@ function drawLokMenu(
     mouse.x <= backX + backW &&
     mouse.y >= backY &&
     mouse.y <= backY + backH;
-  drawBtn(ctx, "◀ BACK", backX, backY, backW, backH, bHover, theme);
+  drawBtn(ctx, "@back|BACK", backX, backY, backW, backH, bHover, theme);
   void state;
 }
 
@@ -2261,7 +2327,7 @@ function drawSettingsMenu(
   ctx.fillStyle = "#fff";
   ctx.font = "bold 24px monospace";
   ctx.textAlign = "center";
-  ctx.fillText("🎨 SETTINGS", W / 2, 22);
+  iconText(ctx, "settings", "SETTINGS", W / 2, 22);
 
   const toggles: { label: string; key: keyof GameState }[] = [
     { label: "HUD", key: "hud" },
@@ -2311,11 +2377,7 @@ function drawSettingsMenu(
     ctx.fillStyle = "#fff";
     ctx.font = "11px monospace";
     ctx.textAlign = "left";
-    ctx.fillText(
-      `${val ? "✓" : "○"} ${t.label}`,
-      bx + 8,
-      by + th / 2 + 4,
-    );
+    iconText(ctx, val ? "check" : "ring", t.label, bx + 8, by + th / 2 + 4);
   });
 
   const backW = 120, backH = 30;
@@ -2328,7 +2390,7 @@ function drawSettingsMenu(
   ctx.fillStyle = "#fff";
   ctx.font = "bold 13px monospace";
   ctx.textAlign = "center";
-  ctx.fillText("◀ BACK", backX + backW / 2, backY + backH / 2 + 5);
+  iconText(ctx, "back", "BACK", backX + backW / 2, backY + backH / 2 + 5);
 }
 
 // ─── GAME OVER ───────────────────────────────────────────────────────────────
@@ -2428,7 +2490,7 @@ function drawBestiary(
   ctx.textAlign = "center";
   ctx.shadowBlur = 12;
   ctx.shadowColor = "#ffd700";
-  ctx.fillText("📖 BESTIARY — KINETIC SOULS", W / 2, 26);
+  iconText(ctx, "book", "BESTIARY — KINETIC SOULS", W / 2, 26);
   ctx.shadowBlur = 0;
   ctx.fillStyle = "rgba(255,255,255,0.3)";
   ctx.font = "10px monospace";
@@ -2471,7 +2533,7 @@ function drawBestiary(
     if (entry.boss) {
       ctx.fillStyle = "#ffd700";
       ctx.font = "bold 10px monospace";
-      ctx.fillText("👑 BOSS", cx + cardW - 70, cy + 18);
+      iconText(ctx, "crown", "BOSS", cx + cardW - 70, cy + 18);
     }
 
     ctx.fillStyle = "rgba(255,255,255,0.5)";
@@ -2503,7 +2565,7 @@ function drawBestiary(
   ctx.fillStyle = "#fff";
   ctx.font = "bold 13px monospace";
   ctx.textAlign = "center";
-  ctx.fillText("◀ BACK TO MENU", backX + backW / 2, backY + backH / 2 + 5);
+  iconText(ctx, "back", "BACK TO MENU", backX + backW / 2, backY + backH / 2 + 5);
 }
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
@@ -2539,7 +2601,56 @@ export default function KineticSouls() {
   const [currentSplash] = useState(
     SPLASH_ARCHIVE[Math.floor(Math.random() * SPLASH_ARCHIVE.length)],
   );
-  const [showMobileUI, setShowMobileUI] = useState(false);
+  const [showMobileUI, setShowMobileUI] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
+  );
+  const [installEvt, setInstallEvt] = useState<{ prompt: () => Promise<void> } | null>(null);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [showSkins, setShowSkins] = useState(false);
+  const [isFull, setIsFull] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true);
+  const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+  useEffect(() => {
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallEvt(e as unknown as { prompt: () => Promise<void> });
+    };
+    const onInstalled = () => setInstallEvt(null);
+    const onFull = () => setIsFull(!!document.fullscreenElement);
+    const mq = window.matchMedia("(orientation: portrait)");
+    const onOrient = () => setIsPortrait(mq.matches);
+    onOrient();
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    document.addEventListener("fullscreenchange", onFull);
+    mq.addEventListener("change", onOrient);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+      document.removeEventListener("fullscreenchange", onFull);
+      mq.removeEventListener("change", onOrient);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+        const orient = screen.orientation as unknown as { lock?: (o: string) => Promise<void> };
+        await orient.lock?.("landscape").catch(() => {});
+      }
+    } catch {
+      /* unsupported (iPhone Safari): installing the app gives full screen */
+    }
+  }, []);
   const [bestiaryScroll] = useState(0);
   const [hoverBox, setHoverBox] = useState<{
     text: string;
@@ -2683,7 +2794,7 @@ export default function KineticSouls() {
     lokCoinsRef.current = 15420;
     setPassport({
       connected: true,
-      username: "Eric_GSix",
+      username: "Demo Player",
       lokCoins: 15420,
       equippedBackground: bgUrl,
       inventory: [
@@ -2860,6 +2971,24 @@ export default function KineticSouls() {
     screenRef.current = "game";
     startDemoDayRun();
   }, [refs, dataRef, timeRef]);
+
+  const quitToMenu = useCallback(() => {
+    const st = stateRef.current;
+    st.running = false;
+    st.paused = false;
+    st.draggingId = null;
+    dataRef.chars.current = [];
+    dataRef.parts.current = [];
+    dataRef.ghosts.current = [];
+    dataRef.texts.current = [];
+    dataRef.feed.current = [];
+    dataRef.bombs.current = [];
+    dataRef.projs.current = [];
+    dataRef.essences.current = [];
+    screenRef.current = "menu";
+    setShowLiveMenu(false);
+    setTick((t) => t + 1);
+  }, [dataRef]);
 
   const spawnP1 = useCallback(() => {
     const st = stateRef.current;
@@ -3338,7 +3467,7 @@ export default function KineticSouls() {
                     spawnText(killer.x, killer.y - 30, "+1", "#ff4444");
                   }
                   const feedMsg = c.isBoss
-                    ? `👑 BOSS eliminated by Team ${killer.team}!`
+                    ? `BOSS eliminated by Team ${killer.team}!`
                     : `Team ${killer.team} eliminated ${c.kineticType}`;
                   const existing = dataRef.feed.current.find((f) => !f.active);
                   const feedEntry: KillFeedMsg = { text: feedMsg, life: 3000, color: killer.team === 1 ? "#00ff88" : "#ff4444", active: true };
@@ -3577,7 +3706,7 @@ export default function KineticSouls() {
 
           ctx.fillStyle = "rgba(255,200,0,0.7)";
           ctx.font = "11px monospace";
-          ctx.fillText(`⚡ Dir: ${state2.directorScore}`, ARENA_W / 2, 44);
+          iconText(ctx, "bolt", `Dir: ${state2.directorScore}`, ARENA_W / 2, 44);
 
           if (state2.modifier !== "none") {
             ctx.fillStyle = "#ffaa00";
@@ -3604,7 +3733,7 @@ export default function KineticSouls() {
             ctx.fillStyle = "#fff";
             ctx.font = "bold 36px monospace";
             ctx.textAlign = "center";
-            ctx.fillText("⏸ PAUSED", ARENA_W / 2, SCOREBOARD_H + ARENA_H / 2);
+            iconText(ctx, "pause", "PAUSED", ARENA_W / 2, SCOREBOARD_H + ARENA_H / 2);
           }
 
           const feedActive = dataRef.feed.current.filter((f) => f.active);
@@ -3678,26 +3807,28 @@ export default function KineticSouls() {
       mouseRef.current.y = (e.clientY - rect.top) * (canvas.height / rect.height);
     };
 
-    const handleClick = (e: MouseEvent) => {
+    const handleClick = (e: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect();
       const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
       const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+      mouseRef.current.x = mx;
+      mouseRef.current.y = my;
       const screen = screenRef.current;
       const state = stateRef.current;
       const W = ARENA_W, H = ARENA_H + SCOREBOARD_H;
 
       if (screen === "menu") {
         const modeButtons: { label: string; value: GameMode }[] = [
-          { label: "⏱ Timer", value: "timer" },
-          { label: "🏆 Score", value: "score" },
-          { label: "♾ Unlimited", value: "unlimited" },
-          { label: "🧟 Horde", value: "horde" },
-          { label: "🦠 Infection", value: "infection" },
+          { label: "@timer|Timer", value: "timer" },
+          { label: "@score|Score", value: "score" },
+          { label: "@infinity|Unlimited", value: "unlimited" },
+          { label: "@horde|Horde", value: "horde" },
+          { label: "@infection|Infection", value: "infection" },
         ];
         const oppButtons: { label: string; value: OpponentMode }[] = [
-          { label: "👥 PvP", value: "pvp" },
-          { label: "🤖 vs Bot", value: "bot" },
-          { label: "⚔ FFA", value: "ffa" },
+          { label: "@pvp|PvP", value: "pvp" },
+          { label: "@bot|vs Bot", value: "bot" },
+          { label: "@ffa|FFA", value: "ffa" },
         ];
         const bw = 160, bh = 34, gapY = 10;
         const col1X = W / 2 - bw - 10, col2X = W / 2 + 10;
@@ -3738,34 +3869,24 @@ export default function KineticSouls() {
         const allEnvs: Environment[] = ["none","ice","blackhole","lava","storm","bouncy","wrap","blackout"];
         const allViews: ViewMode[] = ["standard","theater","cinematic"];
 
-        const colW = 290, colGap = 10;
-        const startX = (W - (colW * 3 + colGap * 2)) / 2;
-        const startY = 70;
-        const bh2 = 24, bw2 = 130, gap2 = 5;
-
         const sections = [
-          { items: allThemes, col: 0, row: 0, setter: (v: string) => { refs.theme.current = v as ThemeMode; stateRef.current.theme = v as ThemeMode; Object.keys(spriteCache).forEach(k => delete spriteCache[k]); } },
-          { items: allMods, col: 1, row: 0, setter: (v: string) => { refs.mod.current = v as LokModifier; } },
-          { items: allCams, col: 2, row: 0, setter: (v: string) => { refs.cam.current = v as CameraMode; } },
-          { items: allWeps, col: 2, row: 1, setter: (v: string) => { refs.wep.current = v as WeaponStyle; } },
-          { items: allEnvs, col: 1, row: 1, setter: (v: string) => { refs.env.current = v as Environment; } },
-          { items: allViews, col: 2, row: 2, setter: (v: string) => { refs.view.current = v as ViewMode; } },
+          { items: allThemes, setter: (v: string) => { refs.theme.current = v as ThemeMode; stateRef.current.theme = v as ThemeMode; Object.keys(spriteCache).forEach(k => delete spriteCache[k]); } },
+          { items: allMods, setter: (v: string) => { refs.mod.current = v as LokModifier; } },
+          { items: allCams, setter: (v: string) => { refs.cam.current = v as CameraMode; } },
+          { items: allWeps, setter: (v: string) => { refs.wep.current = v as WeaponStyle; } },
+          { items: allEnvs, setter: (v: string) => { refs.env.current = v as Environment; } },
+          { items: allViews, setter: (v: string) => { refs.view.current = v as ViewMode; } },
         ];
 
-        for (const sec of sections) {
-          const baseX = startX + sec.col * (colW + colGap);
-          const baseY = startY + sec.row * 170;
+        sections.forEach((sec, si) => {
           sec.items.forEach((item, i) => {
-            const col2 = Math.floor(i / 7);
-            const row2 = i % 7;
-            const bx = baseX + col2 * (bw2 + gap2);
-            const by = baseY + 12 + row2 * (bh2 + 3);
-            if (mx >= bx && mx <= bx + bw2 && my >= by && my <= by + bh2) {
+            const { x: bx, y: by } = lokItemRect(si, i);
+            if (mx >= bx && mx <= bx + LOK_BTN_W && my >= by && my <= by + LOK_BTN_H) {
               sec.setter(item);
               setTick((t) => t + 1);
             }
           });
-        }
+        });
 
         const backW = 120, backH = 30;
         const backX = W / 2 - backW / 2, backY = H - 44;
@@ -3852,10 +3973,12 @@ export default function KineticSouls() {
       } else if (e.key.toLowerCase() === "m" && screen === "game") {
         setShowLiveMenu((v) => !v);
       } else if (e.key === "Escape") {
-        if (screen === "game" && state.running) {
-          state.paused = !state.paused;
+        if (screen === "game" && state.running && !state.paused) {
+          state.paused = true;
           setTick((t) => t + 1);
-        } else if (screen !== "menu" && screen !== "game") {
+        } else if (screen === "game") {
+          quitToMenu();
+        } else if (screen !== "menu") {
           screenRef.current = "menu";
           setTick((t) => t + 1);
         }
@@ -3894,7 +4017,12 @@ export default function KineticSouls() {
       if (screenRef.current === "game") {
         if (tx < ARENA_W / 2) spawnP1();
         else spawnP2();
+      } else {
+        // preventDefault above suppresses the synthetic click, so menus
+        // must be driven from touch directly (iPhone had no working menus).
+        handleClick(touch);
       }
+      void ty;
     };
 
     canvas.addEventListener("mousemove", handleMouseMove);
@@ -3914,7 +4042,7 @@ export default function KineticSouls() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [startGame, spawnP1, spawnP2, dataRef]);
+  }, [startGame, spawnP1, spawnP2, quitToMenu, dataRef]);
 
   const allSkins: SkinType[] = ["default", "ballman", "fallguys", "voxel", "mecha", "diamond", "skull", "robot", "pacman", "tea", "food", "ghost"];
 
@@ -3922,8 +4050,13 @@ export default function KineticSouls() {
     <div
       style={{
         width: "100vw",
-        height: "100vh",
-        background: "#000",
+        height: "100dvh",
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+        boxSizing: "border-box",
+        background: "#0A0A0C",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -3938,34 +4071,38 @@ export default function KineticSouls() {
         height={ARENA_H + SCOREBOARD_H}
         style={{
           display: "block",
-          maxWidth: "100%",
-          maxHeight: "100%",
+          width: "min(100%, calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 900 / 620))",
+          height: "auto",
           imageRendering: "pixelated",
           cursor: stateRef.current.handOfGod ? "crosshair" : "default",
           touchAction: "none",
         }}
       />
 
-      {/* Skin Picker Row */}
+      {/* Skin Picker Row (menu only so the arena gets the whole screen) */}
+      {screenRef.current === "menu" && showSkins && (
       <div
         style={{
           position: "absolute",
-          bottom: 0,
+          bottom: "calc(6px + env(safe-area-inset-bottom))",
           left: "50%",
           transform: "translateX(-50%)",
+          width: "min(880px, calc(100% - 12px))",
           display: "flex",
           gap: 4,
           background: "rgba(0,0,0,0.8)",
           padding: "4px 8px",
           borderRadius: 4,
           alignItems: "center",
-          flexWrap: "wrap",
-          maxWidth: ARENA_W,
+          flexWrap: "nowrap",
+          overflowX: "auto",
+          maxWidth: "100%",
+          flexShrink: 0,
         }}
       >
         <span style={{ color: "#ff6655", fontSize: 10, fontFamily: "monospace", marginRight: 4 }}>P1 SKIN:</span>
         {allSkins.map((s) => (
-          <button
+          <Button
             key={`p1-${s}`}
             onClick={() => setP1Skin(s)}
             style={{
@@ -3980,11 +4117,11 @@ export default function KineticSouls() {
             }}
           >
             {s}
-          </button>
+          </Button>
         ))}
         <span style={{ color: "#5599ff", fontSize: 10, fontFamily: "monospace", margin: "0 4px" }}>P2 SKIN:</span>
         {allSkins.map((s) => (
-          <button
+          <Button
             key={`p2-${s}`}
             onClick={() => setP2Skin(s)}
             style={{
@@ -3999,26 +4136,73 @@ export default function KineticSouls() {
             }}
           >
             {s}
-          </button>
+          </Button>
         ))}
       </div>
+      )}
 
-      {/* Mobile Controls Toggle */}
-      <div style={{ position: "absolute", top: 4, right: 4 }}>
-        <label style={{ color: "#fff", fontSize: 10, fontFamily: "monospace", cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={showMobileUI}
-            onChange={(e) => setShowMobileUI(e.target.checked)}
-            style={{ marginRight: 4 }}
-          />
-          Mobile Controls
+      {screenRef.current === "game" && (
+        <div style={{ position: "absolute", bottom: "calc(8px + env(safe-area-inset-bottom))", left: "calc(8px + env(safe-area-inset-left))", display: "flex", gap: 4, zIndex: 11 }}>
+          {[
+            { t: stateRef.current.paused ? "RESUME" : "PAUSE", f: () => { stateRef.current.paused = !stateRef.current.paused; setTick((v) => v + 1); } },
+            { t: "MENU", f: quitToMenu },
+            { t: "MODS", f: () => setShowLiveMenu((v) => !v) },
+            ...(typeof document !== "undefined" && document.fullscreenEnabled ? [{ t: isFull ? "EXIT FULL" : "FULLSCREEN", f: toggleFullscreen }] : []),
+          ].map((b) => (
+            <Button
+              key={b.t}
+              className="ks-btn"
+              onClick={b.f}
+              style={appBtn}
+            >
+              {b.t}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {/* App controls: fullscreen, install, mobile spawn buttons */}
+      {screenRef.current !== "game" && (
+      <div style={{ position: "absolute", top: "calc(4px + env(safe-area-inset-top))", right: "calc(4px + env(safe-area-inset-right))", display: "flex", gap: 4, alignItems: "center", zIndex: 11 }}>
+        {screenRef.current === "menu" && (
+          <Button className="ks-btn" onClick={() => setShowSkins((v) => !v)} style={appBtn}>SKINS</Button>
+        )}
+        {typeof document !== "undefined" && document.fullscreenEnabled && (
+          <Button className="ks-btn" onClick={toggleFullscreen} style={appBtn}>{isFull ? "EXIT FULL" : "FULLSCREEN"}</Button>
+        )}
+        {!isStandalone && (installEvt || isIOS) && (
+          <Button
+            className="ks-btn"
+            onClick={() => (installEvt ? installEvt.prompt() : setShowInstallHelp((v) => !v))}
+            style={{ ...appBtn, borderColor: "#2DD4BF", color: "#2DD4BF" }}
+          >
+            INSTALL APP
+          </Button>
+        )}
+        <label className="ks-btn" style={{ ...appBtn, display: "flex", alignItems: "center", gap: 8 }}>
+          Touch controls
+          <Switch checked={showMobileUI} onCheckedChange={(next) => setShowMobileUI(next)} className="ks-switch">
+            <SwitchThumb className="ks-switch-thumb" />
+          </Switch>
         </label>
       </div>
+      )}
 
-      {showMobileUI && (
-        <div style={{ position: "absolute", bottom: 44, display: "flex", gap: 12 }}>
-          <button
+      {showInstallHelp && (
+        <div style={{ position: "absolute", top: "calc(44px + env(safe-area-inset-top))", right: 8, maxWidth: 260, background: "#0A0A0C", border: "1px solid #2DD4BF", color: "#F4F3EF", fontFamily: "monospace", fontSize: 12, padding: 10, zIndex: 12 }}>
+          Tap the Share button in Safari, then Add to Home Screen. It opens full screen, no browser bars.
+        </div>
+      )}
+
+      {isPortrait && showMobileUI && screenRef.current !== "game" && (
+        <div style={{ position: "absolute", top: "calc(44px + env(safe-area-inset-top))", left: 8, background: "#0A0A0C", border: "1px solid #E8B64C", color: "#E8B64C", fontFamily: "monospace", fontSize: 11, padding: "6px 8px", zIndex: 12 }}>
+          Turn your phone sideways for the full arena.
+        </div>
+      )}
+
+      {showMobileUI && screenRef.current === "game" && (
+        <div style={{ position: "absolute", bottom: "calc(12px + env(safe-area-inset-bottom))", display: "flex", gap: 12, zIndex: 11 }}>
+          <Button
             onPointerDown={(e) => { e.preventDefault(); spawnP1(); }}
             style={{
               background: "rgba(255,80,80,0.7)",
@@ -4033,8 +4217,8 @@ export default function KineticSouls() {
             }}
           >
             P1 SPAWN
-          </button>
-          <button
+          </Button>
+          <Button
             onPointerDown={(e) => { e.preventDefault(); spawnP2(); }}
             style={{
               background: "rgba(80,100,255,0.7)",
@@ -4049,7 +4233,7 @@ export default function KineticSouls() {
             }}
           >
             P2 SPAWN
-          </button>
+          </Button>
         </div>
       )}
 
@@ -4072,13 +4256,13 @@ export default function KineticSouls() {
           }}
         >
           <div style={{ fontWeight: "bold", marginBottom: 8, color: "#ffd700" }}>
-            ⚡ LIVE MODS (M to close)
+            LIVE MODS (M to close)
           </div>
 
           <div style={{ marginBottom: 6 }}>
             <span style={{ color: "#aaa" }}>God Action: </span>
             {(["smite", "heal", "revive", "freeze", "enrage", "mutate", "infect", "ascend"] as const).map((a) => (
-              <button
+              <Button
                 key={a}
                 onClick={() => setGodAction(a)}
                 style={{
@@ -4094,14 +4278,14 @@ export default function KineticSouls() {
                 }}
               >
                 {a}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div style={{ marginBottom: 6 }}>
             <span style={{ color: "#aaa" }}>Target Team: </span>
             {[1, 2, 3].map((t) => (
-              <button
+              <Button
                 key={t}
                 onClick={() => setGodTarget(t)}
                 style={{
@@ -4116,14 +4300,14 @@ export default function KineticSouls() {
                 }}
               >
                 T{t}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div style={{ marginBottom: 6 }}>
             <span style={{ color: "#aaa" }}>Spawn Type: </span>
             {(["standard", "tank", "assassin", "giant", "mage", "necromancer"] as KineticType[]).map((kt) => (
-              <button
+              <Button
                 key={kt}
                 onClick={() => setBirthType(kt)}
                 style={{
@@ -4139,12 +4323,12 @@ export default function KineticSouls() {
                 }}
               >
                 {kt}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            <button
+            <Button
               onClick={() => {
                 const state = stateRef.current;
                 dataRef.chars.current.forEach((c) => {
@@ -4169,9 +4353,9 @@ export default function KineticSouls() {
                 borderRadius: 3,
               }}
             >
-              ⚡ EXECUTE
-            </button>
-            <button
+              EXECUTE
+            </Button>
+            <Button
               onClick={() => {
                 const st = stateRef.current;
                 st.paused = !st.paused;
@@ -4179,35 +4363,35 @@ export default function KineticSouls() {
               }}
               style={{ background: "#224488", color: "#fff", border: "none", padding: "4px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3 }}
             >
-              ⏸ PAUSE
-            </button>
-            <button
+              PAUSE
+            </Button>
+            <Button
               onClick={spawnP1}
               style={{ background: "#883300", color: "#fff", border: "none", padding: "4px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3 }}
             >
               +P1
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={spawnP2}
               style={{ background: "#003388", color: "#fff", border: "none", padding: "4px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3 }}
             >
               +P2
-            </button>
+            </Button>
           </div>
 
           {passport.connected && (
             <div style={{ marginTop: 8, color: "#ffd700", fontSize: 10 }}>
-              🏅 {passport.username} · {lokCoinsRef.current} LoK Coins
+              {passport.username} · {lokCoinsRef.current} LoK Coins
             </div>
           )}
-          {demoDayFragment && <div style={{ marginTop: 8, color: "#d8c9ff", fontSize: 10 }}>✦ Demo Day inventory: Rift Fragment</div>}
+          {demoDayFragment && <div style={{ marginTop: 8, color: "#d8c9ff", fontSize: 10 }}>Demo Day inventory: Rift Fragment</div>}
           {!passport.connected && (
-            <button
+            <Button
               onClick={connectLokPassport}
               style={{ marginTop: 8, background: "#442200", color: "#ffd700", border: "1px solid #ffd700", padding: "3px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3, width: "100%" }}
             >
-              Connect LoK Passport
-            </button>
+              Connect LoK Passport (demo)
+            </Button>
           )}
         </div>
       )}

@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@layer ui-sdk;
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -65,3 +67,34 @@
     font-family: var(--app-font-sans);
   }
 }
+
+/* Lok feedback baseline for DOM controls: rest, hover/focus, press, disabled. 140/60 ms tokens. */
+.ks-btn { transition: transform 140ms cubic-bezier(.2,.8,.2,1), border-color 140ms, background 140ms; }
+.ks-btn:hover, .ks-btn:focus-visible { border-color: #2DD4BF !important; background: rgba(45,212,191,0.14) !important; }
+.ks-btn:focus-visible { outline: 2px solid #E8B64C; outline-offset: 2px; }
+.ks-btn:active { transform: scale(.94); transition-duration: 60ms; }
+.ks-btn:disabled { opacity: .45; }
+@media (pointer: coarse) { .ks-btn { min-height: 44px; min-width: 44px; } }
+@media (prefers-reduced-motion: reduce) { .ks-btn { transition: none; } .ks-btn:active { transform: none; } }
+/* Lok glyph feedback (design standard: every icon answers the pointer). Icons inside controls lift on hover,
+   snap on press, dim when disabled. CSS only, so no per-frame cost; reduced motion and power-save turn it off. */
+.lok-glyph { pointer-events: none; transition: transform 140ms cubic-bezier(.2, .8, .2, 1), filter 140ms ease-out, opacity 140ms ease-out; }
+:is(button, a, [role='button'], [role='tab'], summary, label):is(:hover, :focus-visible):not(:disabled, [aria-disabled='true']) .lok-glyph { transform: scale(1.12); filter: drop-shadow(0 0 3px currentColor); }
+:is(button, a, [role='button'], [role='tab'], summary):active:not(:disabled, [aria-disabled='true']) .lok-glyph { transform: scale(.86); filter: none; transition-duration: 60ms; }
+:is(button, a, [role='button'], [role='tab']):is(:disabled, [aria-disabled='true']) .lok-glyph { opacity: .45; filter: grayscale(.6); }
+.lok-glyph-pop { animation: lok-glyph-pop 260ms cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes lok-glyph-pop { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.18); opacity: 1; } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .lok-glyph, .lok-glyph-pop { transition: none; animation: none; }
+  :is(button, a, [role='button'], [role='tab'], summary, label):is(:hover, :focus-visible, :active) .lok-glyph { transform: none; }
+}
+html[data-power-save] .lok-glyph { filter: none !important; transition: none; }
+
+/* ui-sdk Switch styled from Lok tokens (behavior only comes from the library). */
+.ks-switch { width: 38px; height: 20px; background: #0A0A0C; border: 1px solid rgba(244,243,239,.5); padding: 2px; display: inline-flex; align-items: center; cursor: pointer; }
+.ks-switch[data-checked] { border-color: #2DD4BF; background: rgba(45,212,191,.25); }
+.ks-switch:focus-visible { outline: 2px solid #E8B64C; outline-offset: 2px; }
+.ks-switch-thumb { width: 14px; height: 14px; background: #F4F3EF; transition: transform 140ms cubic-bezier(.2,.8,.2,1); }
+[data-checked] > .ks-switch-thumb { transform: translateX(18px); background: #2DD4BF; }
+[data-slot="button"][data-pending] { opacity: .7; cursor: progress; }
+@media (prefers-reduced-motion: reduce) { .ks-switch-thumb { transition: none; } }
