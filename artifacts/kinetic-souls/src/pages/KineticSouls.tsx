@@ -16,8 +16,8 @@ const SPLASH_ARCHIVE = [
   "LOK HORIZON: Connecting...",
   "THEEEee ULtimatee everything-everywhere-all-at-once auto-battler?",
   "Why choose a variant when you can build the ULTIMATE?",
-  "🦉 Lok: Focus on what matters.",
-  "💰 COIN MODE: Greed is a weapon.",
+  "Lok: Focus on what matters.",
+  "COIN MODE: Greed is a weapon.",
   "GSix: Gilded Protocol - Authorized.",
   "Br/kn State: THE SOUL OF THE MACHINE.",
   "4-Tone Puke: Pure Retro DMG.",
@@ -1875,6 +1875,163 @@ function drawThemeBackground(
 }
 
 // ─── DRAW BUTTON ─────────────────────────────────────────────────────────────
+// ─── ORIGINAL VECTOR ICONS (no emoji, no stock glyphs) ──────────────────────
+type IconName =
+  | "timer" | "score" | "infinity" | "horde" | "infection" | "pvp" | "bot" | "ffa"
+  | "play" | "lok" | "settings" | "book" | "back" | "crown" | "bolt" | "pause"
+  | "check" | "ring";
+
+function drawIcon(
+  ctx: CanvasRenderingContext2D,
+  name: IconName,
+  cx: number,
+  cy: number,
+  size: number,
+  color: string,
+) {
+  const r = size / 2;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = Math.max(1.5, size / 9);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowBlur = 0;
+  const poly = (pts: number[][], fill = true) => {
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * r, y * r) : ctx.moveTo(x * r, y * r)));
+    ctx.closePath();
+    if (fill) ctx.fill(); else ctx.stroke();
+  };
+  const circ = (x: number, y: number, rad: number, fill = false) => {
+    ctx.beginPath();
+    ctx.arc(x * r, y * r, rad * r, 0, Math.PI * 2);
+    if (fill) ctx.fill(); else ctx.stroke();
+  };
+  const line = (x1: number, y1: number, x2: number, y2: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x1 * r, y1 * r);
+    ctx.lineTo(x2 * r, y2 * r);
+    ctx.stroke();
+  };
+  const spokes = (from: number, to: number) => {
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      line(Math.cos(a) * from, Math.sin(a) * from, Math.cos(a) * to, Math.sin(a) * to);
+    }
+  };
+  switch (name) {
+    case "timer":
+      circ(0, 0.1, 0.8); line(0, 0.1, 0, -0.4); line(0, 0.1, 0.35, 0.3); line(-0.2, -0.95, 0.2, -0.95);
+      break;
+    case "score":
+      poly([[-0.6, -0.8], [0.6, -0.8], [0.45, 0.1], [0.1, 0.35], [-0.1, 0.35], [-0.45, 0.1]]);
+      line(0, 0.35, 0, 0.7); line(-0.5, 0.85, 0.5, 0.85);
+      break;
+    case "infinity":
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.bezierCurveTo(0.3 * r, -0.7 * r, r, -0.7 * r, r, 0);
+      ctx.bezierCurveTo(r, 0.7 * r, 0.3 * r, 0.7 * r, 0, 0);
+      ctx.bezierCurveTo(-0.3 * r, -0.7 * r, -r, -0.7 * r, -r, 0);
+      ctx.bezierCurveTo(-r, 0.7 * r, -0.3 * r, 0.7 * r, 0, 0);
+      ctx.stroke();
+      break;
+    case "horde":
+      circ(-0.55, 0.15, 0.28, true); circ(0.55, 0.15, 0.28, true); circ(0, -0.25, 0.32, true);
+      poly([[-0.9, 0.9], [-0.2, 0.9], [-0.2, 0.5], [-0.9, 0.5]]);
+      poly([[0.2, 0.9], [0.9, 0.9], [0.9, 0.5], [0.2, 0.5]]);
+      break;
+    case "infection":
+      circ(0, 0, 0.45, true); spokes(0.6, 0.95);
+      break;
+    case "pvp":
+      circ(-0.5, -0.35, 0.28, true); circ(0.5, -0.35, 0.28, true);
+      poly([[-0.95, 0.8], [-0.05, 0.8], [-0.1, 0.05], [-0.9, 0.05]]);
+      poly([[0.05, 0.8], [0.95, 0.8], [0.9, 0.05], [0.1, 0.05]]);
+      break;
+    case "bot":
+      poly([[-0.8, -0.45], [0.8, -0.45], [0.8, 0.8], [-0.8, 0.8]], false);
+      line(0, -0.45, 0, -0.85); circ(0, -0.9, 0.1, true);
+      ctx.fillRect(-0.5 * r, -0.05 * r, 0.3 * r, 0.3 * r); ctx.fillRect(0.2 * r, -0.05 * r, 0.3 * r, 0.3 * r);
+      break;
+    case "ffa":
+      line(-0.8, -0.8, 0.8, 0.8); line(0.8, -0.8, -0.8, 0.8);
+      line(-0.8, -0.3, -0.3, -0.8); line(0.8, -0.3, 0.3, -0.8);
+      break;
+    case "play":
+      poly([[-0.55, -0.8], [0.8, 0], [-0.55, 0.8]]);
+      break;
+    case "back":
+      poly([[0.55, -0.8], [-0.8, 0], [0.55, 0.8]]);
+      break;
+    case "lok":
+      circ(0, 0, 0.5); spokes(0.65, 0.95); circ(0, 0, 0.15, true);
+      break;
+    case "settings":
+      line(-0.9, -0.55, 0.9, -0.55); line(-0.9, 0, 0.9, 0); line(-0.9, 0.55, 0.9, 0.55);
+      circ(-0.35, -0.55, 0.2, true); circ(0.4, 0, 0.2, true); circ(-0.1, 0.55, 0.2, true);
+      break;
+    case "book":
+      poly([[-0.95, -0.7], [-0.05, -0.55], [-0.05, 0.8], [-0.95, 0.65]], false);
+      poly([[0.95, -0.7], [0.05, -0.55], [0.05, 0.8], [0.95, 0.65]], false);
+      break;
+    case "crown":
+      poly([[-0.9, 0.6], [-0.9, -0.5], [-0.4, 0], [0, -0.7], [0.4, 0], [0.9, -0.5], [0.9, 0.6]]);
+      break;
+    case "bolt":
+      poly([[0.2, -0.95], [-0.6, 0.15], [-0.05, 0.15], [-0.2, 0.95], [0.6, -0.2], [0.05, -0.2]]);
+      break;
+    case "pause":
+      ctx.fillRect(-0.55 * r, -0.7 * r, 0.4 * r, 1.4 * r);
+      ctx.fillRect(0.15 * r, -0.7 * r, 0.4 * r, 1.4 * r);
+      break;
+    case "check":
+      ctx.beginPath(); ctx.moveTo(-0.7 * r, 0); ctx.lineTo(-0.2 * r, 0.55 * r); ctx.lineTo(0.75 * r, -0.6 * r); ctx.stroke();
+      break;
+    case "ring":
+      circ(0, 0, 0.55);
+      break;
+  }
+  ctx.restore();
+}
+
+// Draws an icon plus text honoring the current textAlign (left/center/right).
+function iconText(
+  ctx: CanvasRenderingContext2D,
+  icon: IconName,
+  text: string,
+  x: number,
+  y: number,
+) {
+  const align = ctx.textAlign;
+  const color = ctx.fillStyle as string;
+  const base = ctx.textBaseline;
+  const m = /(\d+(?:\.\d+)?)px/.exec(ctx.font);
+  const size = Math.round((m ? parseFloat(m[1]) : 12) * 1.05);
+  const tw = ctx.measureText(text).width;
+  const total = size + 6 + tw;
+  const start = align === "center" ? x - total / 2 : align === "right" ? x - total : x;
+  ctx.textAlign = "left";
+  const iy = base === "middle" ? y : base === "top" ? y + size / 2 : y - size * 0.35;
+  drawIcon(ctx, icon, start + size / 2, iy, size, color);
+  ctx.fillText(text, start + size + 6, y);
+  ctx.textAlign = align;
+}
+
+const appBtn: React.CSSProperties = {
+  background: "rgba(10,10,12,0.85)",
+  color: "#F4F3EF",
+  border: "1px solid rgba(244,243,239,0.35)",
+  padding: "6px 10px",
+  fontSize: 11,
+  fontFamily: "'JetBrains Mono', monospace",
+  borderRadius: 0,
+  cursor: "pointer",
+  userSelect: "none",
+};
+
 function drawBtn(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -1917,7 +2074,9 @@ function drawBtn(
   ctx.font = `bold ${Math.min(13, h * 0.5)}px monospace`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, x + w / 2, y + h / 2);
+  const tagged = /^@(\w+)\|(.*)$/.exec(text);
+  if (tagged) iconText(ctx, tagged[1] as IconName, tagged[2], x + w / 2, y + h / 2);
+  else ctx.fillText(text, x + w / 2, y + h / 2);
 }
 
 // ─── MAIN MENU ───────────────────────────────────────────────────────────────
@@ -1995,16 +2154,16 @@ function drawMainMenu(
   const col2X = W / 2 + 10;
 
   const modeButtons: { label: string; value: GameMode }[] = [
-    { label: "⏱ Timer", value: "timer" },
-    { label: "🏆 Score", value: "score" },
-    { label: "♾ Unlimited", value: "unlimited" },
-    { label: "🧟 Horde", value: "horde" },
-    { label: "🦠 Infection", value: "infection" },
+    { label: "@timer|Timer", value: "timer" },
+    { label: "@score|Score", value: "score" },
+    { label: "@infinity|Unlimited", value: "unlimited" },
+    { label: "@horde|Horde", value: "horde" },
+    { label: "@infection|Infection", value: "infection" },
   ];
   const oppButtons: { label: string; value: OpponentMode }[] = [
-    { label: "👥 PvP", value: "pvp" },
-    { label: "🤖 vs Bot", value: "bot" },
-    { label: "⚔ FFA", value: "ffa" },
+    { label: "@pvp|PvP", value: "pvp" },
+    { label: "@bot|vs Bot", value: "bot" },
+    { label: "@ffa|FFA", value: "ffa" },
   ];
 
   let sY = 130;
@@ -2041,10 +2200,10 @@ function drawMainMenu(
   sY += maxRows * (bh + gapY) + 16;
 
   const bigBtns: { label: string; y: number }[] = [
-    { label: "▶  START GAME", y: sY },
-    { label: "⚙  LOK MENU", y: sY + bh + gapY },
-    { label: "🎨 SETTINGS", y: sY + (bh + gapY) * 2 },
-    { label: "📖 BESTIARY", y: sY + (bh + gapY) * 3 },
+    { label: "@play|START GAME", y: sY },
+    { label: "@lok|LOK MENU", y: sY + bh + gapY },
+    { label: "@settings|SETTINGS", y: sY + (bh + gapY) * 2 },
+    { label: "@book|BESTIARY", y: sY + (bh + gapY) * 3 },
   ];
   const bbW = 340, bbH = 36;
   const bbX = W / 2 - bbW / 2;
@@ -2061,7 +2220,7 @@ function drawMainMenu(
   ctx.font = "10px monospace";
   ctx.textAlign = "center";
   ctx.fillText(
-    "A = Spawn P1 · L = Spawn P2 · Q = Auto · P = Pause · M = Live Mods",
+    "A = Spawn P1 · L = Spawn P2 · Q = Auto · P = Pause · M = Live Mods · Esc = Pause / Menu",
     W / 2,
     H - 14,
   );
@@ -2107,7 +2266,7 @@ function drawLokMenu(
   ctx.fillStyle = "#fff";
   ctx.font = "bold 28px monospace";
   ctx.textAlign = "center";
-  ctx.fillText("⚙ LOK GAME MODIFIERS", W / 2, 22);
+  iconText(ctx, "lok", "LOK GAME MODIFIERS", W / 2, 22);
 
   const sections: {
     label: string;
@@ -2241,7 +2400,7 @@ function drawLokMenu(
     mouse.x <= backX + backW &&
     mouse.y >= backY &&
     mouse.y <= backY + backH;
-  drawBtn(ctx, "◀ BACK", backX, backY, backW, backH, bHover, theme);
+  drawBtn(ctx, "@back|BACK", backX, backY, backW, backH, bHover, theme);
   void state;
 }
 
@@ -2257,7 +2416,7 @@ function drawSettingsMenu(
   ctx.fillStyle = "#fff";
   ctx.font = "bold 24px monospace";
   ctx.textAlign = "center";
-  ctx.fillText("🎨 SETTINGS", W / 2, 22);
+  iconText(ctx, "settings", "SETTINGS", W / 2, 22);
 
   const toggles: { label: string; key: keyof GameState }[] = [
     { label: "HUD", key: "hud" },
@@ -2307,11 +2466,7 @@ function drawSettingsMenu(
     ctx.fillStyle = "#fff";
     ctx.font = "11px monospace";
     ctx.textAlign = "left";
-    ctx.fillText(
-      `${val ? "✓" : "○"} ${t.label}`,
-      bx + 8,
-      by + th / 2 + 4,
-    );
+    iconText(ctx, val ? "check" : "ring", t.label, bx + 8, by + th / 2 + 4);
   });
 
   const backW = 120, backH = 30;
@@ -2324,7 +2479,7 @@ function drawSettingsMenu(
   ctx.fillStyle = "#fff";
   ctx.font = "bold 13px monospace";
   ctx.textAlign = "center";
-  ctx.fillText("◀ BACK", backX + backW / 2, backY + backH / 2 + 5);
+  iconText(ctx, "back", "BACK", backX + backW / 2, backY + backH / 2 + 5);
 }
 
 // ─── GAME OVER ───────────────────────────────────────────────────────────────
@@ -2424,7 +2579,7 @@ function drawBestiary(
   ctx.textAlign = "center";
   ctx.shadowBlur = 12;
   ctx.shadowColor = "#ffd700";
-  ctx.fillText("📖 BESTIARY — KINETIC SOULS", W / 2, 26);
+  iconText(ctx, "book", "BESTIARY — KINETIC SOULS", W / 2, 26);
   ctx.shadowBlur = 0;
   ctx.fillStyle = "rgba(255,255,255,0.3)";
   ctx.font = "10px monospace";
@@ -2467,7 +2622,7 @@ function drawBestiary(
     if (entry.boss) {
       ctx.fillStyle = "#ffd700";
       ctx.font = "bold 10px monospace";
-      ctx.fillText("👑 BOSS", cx + cardW - 70, cy + 18);
+      iconText(ctx, "crown", "BOSS", cx + cardW - 70, cy + 18);
     }
 
     ctx.fillStyle = "rgba(255,255,255,0.5)";
@@ -2499,7 +2654,7 @@ function drawBestiary(
   ctx.fillStyle = "#fff";
   ctx.font = "bold 13px monospace";
   ctx.textAlign = "center";
-  ctx.fillText("◀ BACK TO MENU", backX + backW / 2, backY + backH / 2 + 5);
+  iconText(ctx, "back", "BACK TO MENU", backX + backW / 2, backY + backH / 2 + 5);
 }
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
@@ -2535,7 +2690,56 @@ export default function KineticSouls() {
   const [currentSplash] = useState(
     SPLASH_ARCHIVE[Math.floor(Math.random() * SPLASH_ARCHIVE.length)],
   );
-  const [showMobileUI, setShowMobileUI] = useState(false);
+  const [showMobileUI, setShowMobileUI] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches,
+  );
+  const [installEvt, setInstallEvt] = useState<{ prompt: () => Promise<void> } | null>(null);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const [showSkins, setShowSkins] = useState(false);
+  const [isFull, setIsFull] = useState(false);
+  const [isPortrait, setIsPortrait] = useState(false);
+  const isStandalone =
+    typeof window !== "undefined" &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      (navigator as unknown as { standalone?: boolean }).standalone === true);
+  const isIOS = typeof navigator !== "undefined" && /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+  useEffect(() => {
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallEvt(e as unknown as { prompt: () => Promise<void> });
+    };
+    const onInstalled = () => setInstallEvt(null);
+    const onFull = () => setIsFull(!!document.fullscreenElement);
+    const mq = window.matchMedia("(orientation: portrait)");
+    const onOrient = () => setIsPortrait(mq.matches);
+    onOrient();
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    document.addEventListener("fullscreenchange", onFull);
+    mq.addEventListener("change", onOrient);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+      document.removeEventListener("fullscreenchange", onFull);
+      mq.removeEventListener("change", onOrient);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen({ navigationUI: "hide" });
+        const orient = screen.orientation as unknown as { lock?: (o: string) => Promise<void> };
+        await orient.lock?.("landscape").catch(() => {});
+      }
+    } catch {
+      /* unsupported (iPhone Safari): installing the app gives full screen */
+    }
+  }, []);
   const [bestiaryScroll] = useState(0);
   const [hoverBox, setHoverBox] = useState<{
     text: string;
@@ -2679,7 +2883,7 @@ export default function KineticSouls() {
     lokCoinsRef.current = 15420;
     setPassport({
       connected: true,
-      username: "Eric_GSix",
+      username: "Demo Player",
       lokCoins: 15420,
       equippedBackground: bgUrl,
       inventory: [
@@ -2856,6 +3060,24 @@ export default function KineticSouls() {
     screenRef.current = "game";
     startDemoDayRun();
   }, [refs, dataRef, timeRef]);
+
+  const quitToMenu = useCallback(() => {
+    const st = stateRef.current;
+    st.running = false;
+    st.paused = false;
+    st.draggingId = null;
+    dataRef.chars.current = [];
+    dataRef.parts.current = [];
+    dataRef.ghosts.current = [];
+    dataRef.texts.current = [];
+    dataRef.feed.current = [];
+    dataRef.bombs.current = [];
+    dataRef.projs.current = [];
+    dataRef.essences.current = [];
+    screenRef.current = "menu";
+    setShowLiveMenu(false);
+    setTick((t) => t + 1);
+  }, [dataRef]);
 
   const spawnP1 = useCallback(() => {
     const st = stateRef.current;
@@ -3334,7 +3556,7 @@ export default function KineticSouls() {
                     spawnText(killer.x, killer.y - 30, "+1", "#ff4444");
                   }
                   const feedMsg = c.isBoss
-                    ? `👑 BOSS eliminated by Team ${killer.team}!`
+                    ? `BOSS eliminated by Team ${killer.team}!`
                     : `Team ${killer.team} eliminated ${c.kineticType}`;
                   const existing = dataRef.feed.current.find((f) => !f.active);
                   const feedEntry: KillFeedMsg = { text: feedMsg, life: 3000, color: killer.team === 1 ? "#00ff88" : "#ff4444", active: true };
@@ -3573,7 +3795,7 @@ export default function KineticSouls() {
 
           ctx.fillStyle = "rgba(255,200,0,0.7)";
           ctx.font = "11px monospace";
-          ctx.fillText(`⚡ Dir: ${state2.directorScore}`, ARENA_W / 2, 44);
+          iconText(ctx, "bolt", `Dir: ${state2.directorScore}`, ARENA_W / 2, 44);
 
           if (state2.modifier !== "none") {
             ctx.fillStyle = "#ffaa00";
@@ -3600,7 +3822,7 @@ export default function KineticSouls() {
             ctx.fillStyle = "#fff";
             ctx.font = "bold 36px monospace";
             ctx.textAlign = "center";
-            ctx.fillText("⏸ PAUSED", ARENA_W / 2, SCOREBOARD_H + ARENA_H / 2);
+            iconText(ctx, "pause", "PAUSED", ARENA_W / 2, SCOREBOARD_H + ARENA_H / 2);
           }
 
           const feedActive = dataRef.feed.current.filter((f) => f.active);
@@ -3686,16 +3908,16 @@ export default function KineticSouls() {
 
       if (screen === "menu") {
         const modeButtons: { label: string; value: GameMode }[] = [
-          { label: "⏱ Timer", value: "timer" },
-          { label: "🏆 Score", value: "score" },
-          { label: "♾ Unlimited", value: "unlimited" },
-          { label: "🧟 Horde", value: "horde" },
-          { label: "🦠 Infection", value: "infection" },
+          { label: "@timer|Timer", value: "timer" },
+          { label: "@score|Score", value: "score" },
+          { label: "@infinity|Unlimited", value: "unlimited" },
+          { label: "@horde|Horde", value: "horde" },
+          { label: "@infection|Infection", value: "infection" },
         ];
         const oppButtons: { label: string; value: OpponentMode }[] = [
-          { label: "👥 PvP", value: "pvp" },
-          { label: "🤖 vs Bot", value: "bot" },
-          { label: "⚔ FFA", value: "ffa" },
+          { label: "@pvp|PvP", value: "pvp" },
+          { label: "@bot|vs Bot", value: "bot" },
+          { label: "@ffa|FFA", value: "ffa" },
         ];
         const bw = 160, bh = 34, gapY = 10;
         const col1X = W / 2 - bw - 10, col2X = W / 2 + 10;
@@ -3840,10 +4062,12 @@ export default function KineticSouls() {
       } else if (e.key.toLowerCase() === "m" && screen === "game") {
         setShowLiveMenu((v) => !v);
       } else if (e.key === "Escape") {
-        if (screen === "game" && state.running) {
-          state.paused = !state.paused;
+        if (screen === "game" && state.running && !state.paused) {
+          state.paused = true;
           setTick((t) => t + 1);
-        } else if (screen !== "menu" && screen !== "game") {
+        } else if (screen === "game") {
+          quitToMenu();
+        } else if (screen !== "menu") {
           screenRef.current = "menu";
           setTick((t) => t + 1);
         }
@@ -3907,7 +4131,7 @@ export default function KineticSouls() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [startGame, spawnP1, spawnP2, dataRef]);
+  }, [startGame, spawnP1, spawnP2, quitToMenu, dataRef]);
 
   const allSkins: SkinType[] = ["default", "ballman", "fallguys", "voxel", "mecha", "diamond", "skull", "robot", "pacman", "tea", "food", "ghost"];
 
@@ -3915,8 +4139,13 @@ export default function KineticSouls() {
     <div
       style={{
         width: "100vw",
-        height: "100vh",
-        background: "#000",
+        height: "100dvh",
+        paddingTop: "env(safe-area-inset-top)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+        paddingLeft: "env(safe-area-inset-left)",
+        paddingRight: "env(safe-area-inset-right)",
+        boxSizing: "border-box",
+        background: "#0A0A0C",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -3931,17 +4160,23 @@ export default function KineticSouls() {
         height={ARENA_H + SCOREBOARD_H}
         style={{
           display: "block",
-          maxWidth: "100%",
-          maxHeight: "calc(100vh - 56px)",
+          width: "min(100%, calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * 900 / 620))",
+          height: "auto",
           imageRendering: "pixelated",
           cursor: stateRef.current.handOfGod ? "crosshair" : "default",
           touchAction: "none",
         }}
       />
 
-      {/* Skin Picker Row */}
+      {/* Skin Picker Row (menu only so the arena gets the whole screen) */}
+      {screenRef.current === "menu" && showSkins && (
       <div
         style={{
+          position: "absolute",
+          bottom: "calc(6px + env(safe-area-inset-bottom))",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "min(880px, calc(100% - 12px))",
           display: "flex",
           gap: 4,
           background: "rgba(0,0,0,0.8)",
@@ -3993,22 +4228,65 @@ export default function KineticSouls() {
           </button>
         ))}
       </div>
+      )}
 
-      {/* Mobile Controls Toggle */}
-      <div style={{ position: "absolute", top: 4, right: 4 }}>
-        <label style={{ color: "#fff", fontSize: 10, fontFamily: "monospace", cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={showMobileUI}
-            onChange={(e) => setShowMobileUI(e.target.checked)}
-            style={{ marginRight: 4 }}
-          />
-          Mobile Controls
+      {screenRef.current === "game" && (
+        <div style={{ position: "absolute", bottom: "calc(8px + env(safe-area-inset-bottom))", left: "calc(8px + env(safe-area-inset-left))", display: "flex", gap: 4, zIndex: 11 }}>
+          {[
+            { t: stateRef.current.paused ? "RESUME" : "PAUSE", f: () => { stateRef.current.paused = !stateRef.current.paused; setTick((v) => v + 1); } },
+            { t: "MENU", f: quitToMenu },
+            { t: "MODS", f: () => setShowLiveMenu((v) => !v) },
+            ...(typeof document !== "undefined" && document.fullscreenEnabled ? [{ t: isFull ? "EXIT FULL" : "FULLSCREEN", f: toggleFullscreen }] : []),
+          ].map((b) => (
+            <button
+              key={b.t}
+              onClick={b.f}
+              style={appBtn}
+            >
+              {b.t}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* App controls: fullscreen, install, mobile spawn buttons */}
+      {screenRef.current !== "game" && (
+      <div style={{ position: "absolute", top: "calc(4px + env(safe-area-inset-top))", right: "calc(4px + env(safe-area-inset-right))", display: "flex", gap: 4, alignItems: "center", zIndex: 11 }}>
+        {screenRef.current === "menu" && (
+          <button onClick={() => setShowSkins((v) => !v)} style={appBtn}>SKINS</button>
+        )}
+        {typeof document !== "undefined" && document.fullscreenEnabled && (
+          <button onClick={toggleFullscreen} style={appBtn}>{isFull ? "EXIT FULL" : "FULLSCREEN"}</button>
+        )}
+        {!isStandalone && (installEvt || isIOS) && (
+          <button
+            onClick={() => (installEvt ? installEvt.prompt() : setShowInstallHelp((v) => !v))}
+            style={{ ...appBtn, borderColor: "#2DD4BF", color: "#2DD4BF" }}
+          >
+            INSTALL APP
+          </button>
+        )}
+        <label style={{ ...appBtn, display: "flex", alignItems: "center", gap: 4 }}>
+          <input type="checkbox" checked={showMobileUI} onChange={(e) => setShowMobileUI(e.target.checked)} />
+          Touch controls
         </label>
       </div>
+      )}
 
-      {showMobileUI && (
-        <div style={{ position: "absolute", bottom: 44, display: "flex", gap: 12 }}>
+      {showInstallHelp && (
+        <div style={{ position: "absolute", top: "calc(44px + env(safe-area-inset-top))", right: 8, maxWidth: 260, background: "#0A0A0C", border: "1px solid #2DD4BF", color: "#F4F3EF", fontFamily: "monospace", fontSize: 12, padding: 10, zIndex: 12 }}>
+          Tap the Share button in Safari, then Add to Home Screen. It opens full screen, no browser bars.
+        </div>
+      )}
+
+      {isPortrait && showMobileUI && screenRef.current !== "game" && (
+        <div style={{ position: "absolute", top: "calc(44px + env(safe-area-inset-top))", left: 8, background: "#0A0A0C", border: "1px solid #E8B64C", color: "#E8B64C", fontFamily: "monospace", fontSize: 11, padding: "6px 8px", zIndex: 12 }}>
+          Turn your phone sideways for the full arena.
+        </div>
+      )}
+
+      {showMobileUI && screenRef.current === "game" && (
+        <div style={{ position: "absolute", bottom: "calc(12px + env(safe-area-inset-bottom))", display: "flex", gap: 12, zIndex: 11 }}>
           <button
             onPointerDown={(e) => { e.preventDefault(); spawnP1(); }}
             style={{
@@ -4063,7 +4341,7 @@ export default function KineticSouls() {
           }}
         >
           <div style={{ fontWeight: "bold", marginBottom: 8, color: "#ffd700" }}>
-            ⚡ LIVE MODS (M to close)
+            LIVE MODS (M to close)
           </div>
 
           <div style={{ marginBottom: 6 }}>
@@ -4160,7 +4438,7 @@ export default function KineticSouls() {
                 borderRadius: 3,
               }}
             >
-              ⚡ EXECUTE
+              EXECUTE
             </button>
             <button
               onClick={() => {
@@ -4170,7 +4448,7 @@ export default function KineticSouls() {
               }}
               style={{ background: "#224488", color: "#fff", border: "none", padding: "4px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3 }}
             >
-              ⏸ PAUSE
+              PAUSE
             </button>
             <button
               onClick={spawnP1}
@@ -4188,16 +4466,16 @@ export default function KineticSouls() {
 
           {passport.connected && (
             <div style={{ marginTop: 8, color: "#ffd700", fontSize: 10 }}>
-              🏅 {passport.username} · {lokCoinsRef.current} LoK Coins
+              {passport.username} · {lokCoinsRef.current} LoK Coins
             </div>
           )}
-          {demoDayFragment && <div style={{ marginTop: 8, color: "#d8c9ff", fontSize: 10 }}>✦ Demo Day inventory: Rift Fragment</div>}
+          {demoDayFragment && <div style={{ marginTop: 8, color: "#d8c9ff", fontSize: 10 }}>Demo Day inventory: Rift Fragment</div>}
           {!passport.connected && (
             <button
               onClick={connectLokPassport}
               style={{ marginTop: 8, background: "#442200", color: "#ffd700", border: "1px solid #ffd700", padding: "3px 10px", fontSize: 10, cursor: "pointer", borderRadius: 3, width: "100%" }}
             >
-              Connect LoK Passport
+              Connect LoK Passport (demo)
             </button>
           )}
         </div>

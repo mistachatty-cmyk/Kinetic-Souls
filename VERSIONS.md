@@ -4,7 +4,7 @@ Use the commit IDs below to roll back to any version via Replit's checkpoint sys
 
 ---
 
-## ✅ STABLE V0.3.0 — Full Feature Build (Syntax Fixed)
+## STABLE V0.3.0 — Full Feature Build (Syntax Fixed)
 **Commit:** `bdbc039`  
 **Date:** 2026-03-30  
 **Status: STABLE — use this as your safe restore point**  
